@@ -28,6 +28,9 @@ endif()
 # ==============
 hello_imgui_add_app(hello_world_ hello_world.main.cpp)
 
+target_link_options(hello_world_ PRIVATE -sFETCH)
+
+# target_include_directories(hello_world_ PUBLIC /Users/sabo/repos/emsdk/upstream/emscripten/system/include)
 
 # hello_imgui_add_app is a helper function, similar to cmake's "add_executable"
 # Usage:
