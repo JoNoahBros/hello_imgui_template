@@ -3,6 +3,7 @@
 #include <sstream>
 #include <iomanip>
 #include <cstdio>
+#include "implot.h"
 
 static char szTestText[200];
 
@@ -60,6 +61,57 @@ void sliderValue(int value){
 }
 int slideVal = 24 ;
 double lastTime= 0.0;
+
+void Demo_RealtimePlots() {
+    ImGui::BulletText("Move your mouse to change the data!");
+    ImGui::BulletText("This example assumes 60 FPS. Higher FPS requires larger buffer size.");
+    static ScrollingBuffer sdata1, sdata2;
+    static RollingBuffer   rdata1, rdata2;
+    ImVec2 mouse = ImGui::GetMousePos();
+    static float t = 0;
+    t += ImGui::GetIO().DeltaTime;
+    sdata1.AddPoint(t, mouse.x * 0.0005f);
+    rdata1.AddPoint(t, mouse.x * 0.0005f);
+    sdata2.AddPoint(t, mouse.y * 0.0005f);
+    rdata2.AddPoint(t, mouse.y * 0.0005f);
+
+    static float history = 10.0f;
+    ImGui::SliderFloat("History",&history,1,30,"%.1f s");
+    rdata1.Span = history;
+    rdata2.Span = history;
+
+    static ImPlotAxisFlags flags = ImPlotAxisFlags_NoTickLabels;
+
+    if (ImPlot::BeginPlot("##Scrolling", ImVec2(-1,150))) {
+        ImPlot::SetupAxes(NULL, NULL, flags, flags);
+        ImPlot::SetupAxisLimits(ImAxis_X1,t - history, t, ImGuiCond_Always);
+        ImPlot::SetupAxisLimits(ImAxis_Y1,0,1);
+        ImPlot::SetNextFillStyle(IMPLOT_AUTO_COL,0.5f);
+        ImPlot::PlotShaded("Mouse X", &sdata1.Data[0].x, &sdata1.Data[0].y, sdata1.Data.size(), -INFINITY, 0, sdata1.Offset, 2 * sizeof(float));
+        ImPlot::PlotLine("Mouse Y", &sdata2.Data[0].x, &sdata2.Data[0].y, sdata2.Data.size(), 0, sdata2.Offset, 2*sizeof(float));
+        ImPlot::EndPlot();
+    }
+    if (ImPlot::BeginPlot("##Rolling", ImVec2(-1,150))) {
+        ImPlot::SetupAxes(NULL, NULL, flags, flags);
+        ImPlot::SetupAxisLimits(ImAxis_X1,0,history, ImGuiCond_Always);
+        ImPlot::SetupAxisLimits(ImAxis_Y1,0,1);
+        ImPlot::PlotLine("Mouse X", &rdata1.Data[0].x, &rdata1.Data[0].y, rdata1.Data.size(), 0, 0, 2 * sizeof(float));
+        ImPlot::PlotLine("Mouse Y", &rdata2.Data[0].x, &rdata2.Data[0].y, rdata2.Data.size(), 0, 0, 2 * sizeof(float));
+        ImPlot::EndPlot();
+    }
+}
+
+// int   bar_data[11] = ua;
+// float x_data[1000] = ur;
+// float y_data[1000] =uref;
+
+  // ImGui::Begin("My Window");
+  //   if (ImPlot::BeginPlot("My Plot")) {
+  //       ImPlot::PlotBars("My Bar Plot", ur, 11);
+  //       ImPlot::PlotLine("My Line Plot", ua, ubat, 1000);
+        
+  //   ImPlot::EndPlot();
+
 int main(int , char *[]) {   
     auto guiFunction = []() {
         ImGui::Text("Hello, ");  
@@ -84,5 +136,8 @@ int main(int , char *[]) {
             HelloImGui::GetRunnerParams()->appShallExit = true;
      };
     HelloImGui::Run(guiFunction, "Hello, globe", true);
+  
+}
+ImGui::End();
     return 0;
 }
