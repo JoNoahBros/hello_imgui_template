@@ -133,18 +133,18 @@ void Demo_LinePlots() {
     }
 }
 
-// void Demo_RealtimePlots() {
-//     ImGui::BulletText("Move your mouse to change the data!");
+void Demo_RealtimePlots() {
+    ImGui::BulletText("Move your mouse to change the data!");
    
 
-//     //static ImPlotAxisFlags flags = ImPlotAxisFlags_NoTickLabels;
+    //static ImPlotAxisFlags flags = ImPlotAxisFlags_NoTickLabels;
 
-//     if (ImPlot::BeginPlot("##Scrolling")) {
-//         ImPlot::PlotLine("Mouse Y",ua,ubat,100);
-//         ImPlot::EndPlot();
-//     }
+    if (ImPlot::BeginPlot("##Scrolling")) {
+        ImPlot::PlotLine("Mouse Y",ua,ubat,100);
+        ImPlot::EndPlot();
+    }
    
-// }
+}
 
 int main(int , char *[]) {   
     auto guiFunction = []() {
@@ -170,10 +170,10 @@ int main(int , char *[]) {
             HelloImGui::GetRunnerParams()->appShallExit = true;
       
         }
-        Demo_LinePlots();
         // ImGui::CreateContext();
-        // ImPlot::CreateContext();
-
+        ImPlot::CreateContext();
+        Demo_LinePlots();
+        ImPlot::DestroyContext();
         
         // Demo_LinePlots();
         // ImPlot::DestroyContext();
