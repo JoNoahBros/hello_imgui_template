@@ -94,7 +94,7 @@ hello_imgui_add_app(hello_world_ ${SOURCE_FILES})
 target_link_libraries(hello_world_ PRIVATE hello_imgui)
 
 # Link options (if needed)
-target_link_options(hello_world_ PRIVATE -sFETCH)
+target_link_options(hello_world_ PRIVATE -sFETCH -sASYNCIFY)
 
 # Define the macro for the specific target
 target_compile_definitions(hello_world_ PRIVATE IMGUI_DEFINE_MATH_OPERATORS)

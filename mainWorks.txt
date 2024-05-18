@@ -163,11 +163,11 @@ void Demo_RealtimePlots() {
     sdata3.AddPoint(t, uref);
     sdata4.AddPoint(t, ubat);
     sdata5.AddPoint(t, pt1000);
-    // rdata1.AddPoint(t, ua);
-    // rdata2.AddPoint(t, ur);
-    // rdata3.AddPoint(t, uref);
-    // rdata4.AddPoint(t, ubat);
-    // rdata5.AddPoint(t, pt1000);
+    rdata1.AddPoint(t, ua);
+    rdata2.AddPoint(t, ur);
+    rdata3.AddPoint(t, uref);
+    rdata4.AddPoint(t, ubat);
+    rdata5.AddPoint(t, pt1000);
 
     static float history = 10.0f;
     ImGui::SliderFloat("History",&history,1,30,"%.1f s");
@@ -179,7 +179,7 @@ void Demo_RealtimePlots() {
 
     static ImPlotAxisFlags flags = ImPlotAxisFlags_NoTickLabels;
 
-    if (ImPlot::BeginPlot("Scrolling",ImVec2(-1,150))) {
+    if (ImPlot::BeginPlot("##Scrolling",ImVec2(-1,150))) {
         ImPlot::SetupAxes(NULL, NULL, flags, flags);
         ImPlot::SetupAxisLimits(ImAxis_X1,t - history, t, ImGuiCond_Always);
         ImPlot::SetupAxisLimits(ImAxis_Y1,0,6);
@@ -192,19 +192,6 @@ void Demo_RealtimePlots() {
         ImPlot::PlotLine("PT1000", &sdata5.Data[0].x, &sdata5.Data[0].y, sdata5.Data.size(), 0, sdata5.Offset, 2*sizeof(float));
         ImPlot::EndPlot();
     }
-
-    // if (ImPlot::BeginPlot("##Rolling", ImVec2(-1,150))) {
-    //     ImPlot::SetupAxes(NULL, NULL, flags, flags);
-    //     ImPlot::SetupAxisLimits(ImAxis_X1,0,history, ImGuiCond_Always);
-    //     ImPlot::SetupAxisLimits(ImAxis_Y1,0,1);
-    //     ImPlot::PlotLine("UA", &rdata1.Data[0].x, &rdata1.Data[0].y, rdata1.Data.size(), 0, 0, 2 * sizeof(float));
-    //     ImPlot::PlotLine("UR", &rdata2.Data[0].x, &rdata2.Data[0].y, rdata2.Data.size(), 0, 0, 2 * sizeof(float));
-    //     ImPlot::PlotLine("UREF", &rdata3.Data[0].x, &rdata3.Data[0].y, rdata3.Data.size(), 0, 0, 2 * sizeof(float));
-    //     ImPlot::PlotLine("UBAT", &rdata4.Data[0].x, &rdata4.Data[0].y, rdata4.Data.size(), 0, 0, 2 * sizeof(float));
-    //     ImPlot::PlotLine("PT1000", &rdata5.Data[0].x, &rdata5.Data[0].y, rdata5.Data.size(), 0, 0, 2 * sizeof(float));
-    //     ImPlot::EndPlot();
-    // }
-
     // if (ImPlot::BeginPlot("##Rolling", ImVec2(-1,150))) {
     //     ImPlot::SetupAxes(NULL, NULL, flags, flags);
     //     ImPlot::SetupAxisLimits(ImAxis_X1,0,history, ImGuiCond_Always);
@@ -232,9 +219,14 @@ int main(int , char *[]) {
         //     _flag_start_heating = false;
         //     setHeating(_flag_start_heating);
         // }
-
+        
+        //setHeating(_flag_start_heating);
+         // Display a simple label
         HelloImGui::ImageFromAsset("world.jpg");   // Display a static image
-
+      
+        // if(ImGui::Button("Request")) {
+        //     request();
+        // }
         if (ImGui::Button("Logging On")){
             _cmd_start_logging= 1;
            
@@ -244,20 +236,20 @@ int main(int , char *[]) {
            
             }
         const auto now = ImGui::GetTime();
-        if (now - lastTime >= 1){
+        if (now - lastTime >= 2){
           lastTime = now;
+        }
           //request();
           readAnalogStatus(_cmd_start_logging);
-        }
         ImGui::Text("Values is: %s", szTestText);
         if (ImGui::Button("Bye!")) {               // Display a button
             // and immediately handle its action if it is clicked!
             HelloImGui::GetRunnerParams()->appShallExit = true;
       
         }
-  
+        // ImGui::CreateContext();
         ImPlot::CreateContext();
-        //Demo_LinePlots()      
+        Demo_LinePlots();
         Demo_RealtimePlots();
         ImPlot::DestroyContext();
         //start_timer();
