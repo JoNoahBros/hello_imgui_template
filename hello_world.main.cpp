@@ -75,6 +75,17 @@ void setHeating(bool value) {
     const std::string url = "api/setHeating?h=" + std::string(value ? "true" : "false");
     emscripten_fetch(&attr, url.c_str());
 }
+void setLogging(bool value) {
+    emscripten_fetch_attr_t attr;
+    emscripten_fetch_attr_init(&attr);
+    strcpy(attr.requestMethod, "GET");
+    attr.attributes = EMSCRIPTEN_FETCH_LOAD_TO_MEMORY;
+    // attr.onsuccess = downloadSucceeded;
+    // attr.onerror = downloadFailed;
+
+    const std::string url = "api/setLogging?l=" + std::string(value ? "true" : "false");
+    emscripten_fetch(&attr, url.c_str());
+}
 void readAnalogStatus(int value) {
     emscripten_fetch_attr_t attr;
     emscripten_fetch_attr_init(&attr);
@@ -237,17 +248,19 @@ int main(int , char *[]) {
 
         if (ImGui::Button("Logging On")){
             _cmd_start_logging= 1;
+            setLogging(true);
            
             }
         if (ImGui::Button("Logging OFF")){
             _cmd_start_logging = 0;
-           
+           setLogging(false);
             }
         const auto now = ImGui::GetTime();
         if (now - lastTime >= 1){
           lastTime = now;
-          //request();
-          readAnalogStatus(_cmd_start_logging);
+          request();
+         
+          //readAnalogStatus(_cmd_start_logging);
         }
         ImGui::Text("Values is: %s", szTestText);
         if (ImGui::Button("Bye!")) {               // Display a button
