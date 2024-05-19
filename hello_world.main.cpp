@@ -273,43 +273,16 @@ void Demo_RealtimePlots() {
     // }
 }
 
-
-//////////////////////////////////////////////////////////////////////////
-//    Our Application State
-//////////////////////////////////////////////////////////////////////////
-struct MyAppSettings
-{
-    HelloImGui::InputTextData motto = HelloImGui::InputTextData(
-        "Hello, Dear ImGui\n"
-        "Unleash your creativity!\n",
-        true, // multiline
-        ImVec2(14.f, 3.f) // initial size (in em)
-    );
-    int value = 10;
-};
-
 struct AppState
 {
-    float f = 0.0f;
-    int counter = 0;
-
-    float rocket_launch_time = 0.f;
-    float rocket_progress = 0.0f;
-
-    enum class RocketState {
-        Init,
-        Preparing,
-        Launched
-    };
-    RocketState rocket_state = RocketState::Init;
-
-    MyAppSettings myAppSettings; // This values will be stored in the application settings
+    
 
 	HelloImGui::FontDpiResponsive *TitleFont;
 	HelloImGui::FontDpiResponsive *ColorFont;
 	HelloImGui::FontDpiResponsive *EmojiFont;
 	HelloImGui::FontDpiResponsive *LargeIconFont;
 };
+
 //////////////////////////////////////////////////////////////////////////
 //    Additional fonts handling
 //////////////////////////////////////////////////////////////////////////
@@ -338,150 +311,11 @@ void LoadFonts(AppState& appState) // This is called by runnerParams.callbacks.L
     appState.ColorFont = HelloImGui::LoadFontDpiResponsive("fonts/Playbox/Playbox-FREE.otf", 24.f, fontLoadingParamsColor);
 #endif
 }
-//////////////////////////////////////////////////////////////////////////
-//    Save additional settings in the ini file
-//////////////////////////////////////////////////////////////////////////
-// This demonstrates how to store additional info in the application settings
-// Use this sparingly!
-// This is provided as a convenience only, and it is not intended to store large quantities of text data.
-
-// Warning, the save/load function below are quite simplistic!
-std::string MyAppSettingsToString(const MyAppSettings& myAppSettings)
-{
-    using namespace nlohmann;
-    json j;
-    j["motto"] = HelloImGui::InputTextDataToString(myAppSettings.motto);
-    j["value"] = myAppSettings.value;
-    return j.dump();
-}
-MyAppSettings StringToMyAppSettings(const std::string& s)
-{
-    if (s.empty())
-        return MyAppSettings();
-    MyAppSettings myAppSettings;
-    using namespace nlohmann;
-    try {
-        json j = json::parse(s);
-        myAppSettings.motto = HelloImGui::InputTextDataFromString(j["motto"].get<std::string>());
-        myAppSettings.value = j["value"];
-    }
-    catch (json::exception& e)
-    {
-        HelloImGui::Log(HelloImGui::LogLevel::Error, "Error while parsing user settings: %s", e.what());
-    }
-    return myAppSettings;
-}
-
-// Note: LoadUserSettings() and SaveUserSettings() will be called in the callbacks `PostInit` and `BeforeExit`:
-//     runnerParams.callbacks.PostInit = [&appState]   { LoadMyAppSettings(appState);};
-//     runnerParams.callbacks.BeforeExit = [&appState] { SaveMyAppSettings(appState);};
-void LoadMyAppSettings(AppState& appState) //
-{
-    appState.myAppSettings = StringToMyAppSettings(HelloImGui::LoadUserPref("MyAppSettings"));
-}
-void SaveMyAppSettings(const AppState& appState)
-{
-    HelloImGui::SaveUserPref("MyAppSettings", MyAppSettingsToString(appState.myAppSettings));
-}
-
-// Note: LoadUserSettings() and SaveUserSettings() will be called in the callbacks `PostInit` and `BeforeExit`:
-//     runnerParams.callbacks.PostInit = [&appState]   { LoadMyAppSettings(appState);};
-
-void DemoRocket(AppState& appState)
-{
-    ImGui::PushFont(appState.TitleFont->font); ImGui::Text("Status Bar Demo"); ImGui::PopFont();
-    ImGui::BeginGroup();
-    if (appState.rocket_state == AppState::RocketState::Init)
-    {
-        if (ImGui::Button(ICON_FA_ROCKET" Launch rocket"))
-        {
-            appState.rocket_launch_time = (float)ImGui::GetTime();
-            appState.rocket_state = AppState::RocketState::Preparing;
-            HelloImGui::Log(HelloImGui::LogLevel::Warning, "Rocket is being prepared");
-        }
-    }
-    else if (appState.rocket_state == AppState::RocketState::Preparing)
-    {
-        ImGui::Text("Please Wait");
-        appState.rocket_progress = (float)(ImGui::GetTime() - appState.rocket_launch_time) / 3.f;
-        if (appState.rocket_progress >= 1.0f)
-        {
-            appState.rocket_state = AppState::RocketState::Launched;
-            HelloImGui::Log(HelloImGui::LogLevel::Warning, "Rocket was launched");
-        }
-    }
-    else if (appState.rocket_state == AppState::RocketState::Launched)
-    {
-        ImGui::Text(ICON_FA_ROCKET " Rocket launched");
-        if (ImGui::Button("Reset Rocket"))
-        {
-            appState.rocket_state = AppState::RocketState::Init;
-            appState.rocket_progress = 0.f;
-        }
-    }
-    ImGui::EndGroup();
-    if (ImGui::IsItemHovered())
-        ImGui::SetTooltip("Look at the status bar after clicking");
-}
 
 int main(int , char *[]) {   
-//#############################################################################################
-    // Part 1: Define the application state, fill the status and menu bars, load additional font
-    //#############################################################################################
-
-    // Our application state
-    AppState appState;
-    // Hello ImGui params (they hold the settings as well as the Gui callbacks)
-    HelloImGui::RunnerParams runnerParams;
-    
-    runnerParams.appWindowParams.windowTitle = "Docking Demo";
-    runnerParams.imGuiWindowParams.menuAppTitle = "Docking Demo";
-    runnerParams.appWindowParams.windowGeometry.size = {1200, 1000};
-    runnerParams.appWindowParams.restorePreviousGeometry = true;
-
-    // Our application uses a borderless window, but is movable/resizable
-    runnerParams.appWindowParams.borderless = true;
-    runnerParams.appWindowParams.borderlessMovable = true;
-    runnerParams.appWindowParams.borderlessResizable = true;
-    runnerParams.appWindowParams.borderlessClosable = true;
-
-    // Load additional font
-    runnerParams.callbacks.LoadAdditionalFonts = [&appState]() { LoadFonts(appState); };
-
-//
-    // Change style
-    //
-    // 1. Change theme
-    auto& tweakedTheme = runnerParams.imGuiWindowParams.tweakedTheme;
-    tweakedTheme.Theme = ImGuiTheme::ImGuiTheme_MaterialFlat;
-    tweakedTheme.Tweaks.Rounding = 10.f;
-    // 2. Customize ImGui style at startup
-    runnerParams.callbacks.SetupImGuiStyle = []() {
-        // Reduce spacing between items ((8, 4) by default)
-        ImGui::GetStyle().ItemSpacing = ImVec2(6.f, 4.f);
-    };
-
-    //###############################################################################################
-    // Part 2: Define the application layout and windows
-    //###############################################################################################
-
-    // First, tell HelloImGui that we want full screen dock space (this will create "MainDockSpace")
-    runnerParams.imGuiWindowParams.defaultImGuiWindowType = HelloImGui::DefaultImGuiWindowType::ProvideFullScreenDockSpace;
-    // In this demo, we also demonstrate multiple viewports: you can drag windows outside out the main window in order to put their content into new native windows
-    runnerParams.imGuiWindowParams.enableViewports = true;
-    // Set the default layout
-    // runnerParams.dockingParams = CreateDefaultLayout(appState);
-    // // Add alternative layouts
-    // runnerParams.alternativeDockingLayouts = CreateAlternativeLayouts(appState);
-
-    // uncomment the next line if you want to always start with the layout defined in the code
-    //     (otherwise, modifications to the layout applied by the user layout will be remembered)
-    runnerParams.dockingParams.layoutCondition = HelloImGui::DockingLayoutCondition::ApplicationStart;
-
-
     auto guiFunction = []() {
         // Our application state
-       
+        LoadFonts();
         ImGui::Text("Hello, ");  
         ImGui::Text("UA: %f | UR: %f | UREF: %f | UBAT: %f | PT1000: %f",ua,ur,uref,ubat,pt1000);
 
@@ -530,7 +364,8 @@ int main(int , char *[]) {
       
         }
   
-        ImPlot::CreateContext();   
+        ImPlot::CreateContext(); 
+        //Demo_LinePlots();  
         Demo_RealtimePlots();
         ImPlot::DestroyContext();
     
