@@ -8,6 +8,12 @@
 #include <vector>
 #include <stdio.h>
 
+// Define a callback type
+using ResponseHandler = std::function<void(const std::string&)>;
+
+struct FetchContext {
+    ResponseHandler handler;
+};
 
 
 
@@ -21,19 +27,13 @@ int slideVal = 24 ;
 double lastTime= 0.0;
 double lastTimeX= 0.0;
 
-// Define a callback type
-using ResponseHandler = std::function<void(const std::string&)>;
-
-struct FetchContext {
-    ResponseHandler handler;
-};
 void downloadSucceeded(emscripten_fetch_t *fetch) {
     printf("Finished downloading %llu bytes from URL %s.\n", fetch->numBytes, fetch->url);
 
     // Retrieve the context
     FetchContext* context = (FetchContext*)fetch->userData;
 
-    // Copy the data to responseAPI
+    // Copy the data to szTestText
     memcpy(responseAPI, fetch->data, fetch->numBytes);
     responseAPI[fetch->numBytes] = '\0';
     std::string data(responseAPI);
@@ -43,20 +43,16 @@ void downloadSucceeded(emscripten_fetch_t *fetch) {
         context->handler(data);
     }
 
-    // Clean up
-    delete context;
     emscripten_fetch_close(fetch); // Free data associated with the fetch.
 }
 void downloadFailed(emscripten_fetch_t *fetch) {
-    printf("Downloading %s failed, HTTP failure status code: %d.\n", fetch->url, fetch->status);
-
-    // Clean up
-    delete (FetchContext*)fetch->userData;
-    emscripten_fetch_close(fetch); // Also free data on failure.
+  printf("Downloading %s failed, HTTP failure status code: %d.\n", fetch->url, fetch->status);
+  emscripten_fetch_close(fetch); // Also free data on failure.
+  
 }
-
 void handleAnalogValues(const std::string& data) {
     std::stringstream dataStream(data);
+
     const auto read = [&dataStream](float &value) {
         std::string line;
         getline(dataStream, line, ' ');
@@ -72,15 +68,26 @@ void handleAnalogValues(const std::string& data) {
 
     printf("UA: %f, UR: %f, UREF: %f, UBAT: %f, PT1000: %f\n", ua, ur, uref, ubat, pt1000);
 }
-
 void handleSetLogging(const std::string& data) {
-    printf("Set logging response: %s\n", data.c_str());
-}
-
+    std::stringstream dataStream(data);
+    const auto read = [&dataStream](float &value) {
+        std::string line;
+        getline(dataStream, line, ' ');
+        printf("Read line %s\n", line.c_str());
+        sscanf(line.c_str(), "%f", &value);
+    };
+   
+};
 void handleSetHeating(const std::string& data) {
-    printf("Set heating response: %s\n", data.c_str());
-}
-
+    std::stringstream dataStream(data);
+    const auto read = [&dataStream](float &value) {
+        std::string line;
+        getline(dataStream, line, ' ');
+        printf("Read line %s\n", line.c_str());
+        sscanf(line.c_str(), "%f", &value);
+    };
+   
+};
 void setLogging(bool value) {
     // Create a context with the appropriate handler
     FetchContext* context = new FetchContext{handleSetLogging};
@@ -91,18 +98,16 @@ void setLogging(bool value) {
     strcpy(attr.requestMethod, "GET");
     attr.attributes = EMSCRIPTEN_FETCH_LOAD_TO_MEMORY;
     attr.onsuccess = downloadSucceeded;
-    attr.onerror = downloadFailed;
+    attr.onerror = downloadFailed; // Assuming you have a downloadFailed function
     attr.userData = context;
 
     // Construct the URL with the logging value
     const std::string url = "api/setLogging?l=" + std::string(value ? "true" : "false");
-    printf("Requesting URL: %s\n", url.c_str());
     emscripten_fetch(&attr, url.c_str());
 }
-
 void setHeating(bool value) {
     // Create a context with the appropriate handler
-    FetchContext* context = new FetchContext{handleSetHeating};
+    FetchContext* context = new FetchContext{handleSetLogging};
 
     // Initialize fetch attributes
     emscripten_fetch_attr_t attr;
@@ -110,14 +115,12 @@ void setHeating(bool value) {
     strcpy(attr.requestMethod, "GET");
     attr.attributes = EMSCRIPTEN_FETCH_LOAD_TO_MEMORY;
     attr.onsuccess = downloadSucceeded;
-    attr.onerror = downloadFailed;
+    attr.onerror = downloadFailed; // Assuming you have a downloadFailed function
     attr.userData = context;
 
     const std::string url = "api/setHeating?h=" + std::string(value ? "true" : "false");
-    printf("Requesting URL: %s\n", url.c_str());
     emscripten_fetch(&attr, url.c_str());
 }
-
 void sliderValue(int value){
     emscripten_fetch_attr_t attr;
     emscripten_fetch_attr_init(&attr);
