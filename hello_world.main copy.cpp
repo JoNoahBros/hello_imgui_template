@@ -7,12 +7,6 @@
 #include "source_implot/implot_internal.h"
 #include <vector>
 #include <stdio.h>
-#include "nlohmann/json.hpp"
-#include "hello_imgui/renderer_backend_options.h"
-#include "hello_imgui/icons_font_awesome_6.h"
-#include "imgui.h"
-#include "imgui_stdlib.h"
-#include "imgui_internal.h"
 
 
 
@@ -425,63 +419,7 @@ void DemoRocket(AppState& appState)
 }
 
 int main(int , char *[]) {   
-//#############################################################################################
-    // Part 1: Define the application state, fill the status and menu bars, load additional font
-    //#############################################################################################
-
-    // Our application state
-    AppState appState;
-    // Hello ImGui params (they hold the settings as well as the Gui callbacks)
-    HelloImGui::RunnerParams runnerParams;
-    
-    runnerParams.appWindowParams.windowTitle = "Docking Demo";
-    runnerParams.imGuiWindowParams.menuAppTitle = "Docking Demo";
-    runnerParams.appWindowParams.windowGeometry.size = {1200, 1000};
-    runnerParams.appWindowParams.restorePreviousGeometry = true;
-
-    // Our application uses a borderless window, but is movable/resizable
-    runnerParams.appWindowParams.borderless = true;
-    runnerParams.appWindowParams.borderlessMovable = true;
-    runnerParams.appWindowParams.borderlessResizable = true;
-    runnerParams.appWindowParams.borderlessClosable = true;
-
-    // Load additional font
-    runnerParams.callbacks.LoadAdditionalFonts = [&appState]() { LoadFonts(appState); };
-
-//
-    // Change style
-    //
-    // 1. Change theme
-    auto& tweakedTheme = runnerParams.imGuiWindowParams.tweakedTheme;
-    tweakedTheme.Theme = ImGuiTheme::ImGuiTheme_MaterialFlat;
-    tweakedTheme.Tweaks.Rounding = 10.f;
-    // 2. Customize ImGui style at startup
-    runnerParams.callbacks.SetupImGuiStyle = []() {
-        // Reduce spacing between items ((8, 4) by default)
-        ImGui::GetStyle().ItemSpacing = ImVec2(6.f, 4.f);
-    };
-
-    //###############################################################################################
-    // Part 2: Define the application layout and windows
-    //###############################################################################################
-
-    // First, tell HelloImGui that we want full screen dock space (this will create "MainDockSpace")
-    runnerParams.imGuiWindowParams.defaultImGuiWindowType = HelloImGui::DefaultImGuiWindowType::ProvideFullScreenDockSpace;
-    // In this demo, we also demonstrate multiple viewports: you can drag windows outside out the main window in order to put their content into new native windows
-    runnerParams.imGuiWindowParams.enableViewports = true;
-    // Set the default layout
-    // runnerParams.dockingParams = CreateDefaultLayout(appState);
-    // // Add alternative layouts
-    // runnerParams.alternativeDockingLayouts = CreateAlternativeLayouts(appState);
-
-    // uncomment the next line if you want to always start with the layout defined in the code
-    //     (otherwise, modifications to the layout applied by the user layout will be remembered)
-    runnerParams.dockingParams.layoutCondition = HelloImGui::DockingLayoutCondition::ApplicationStart;
-
-
     auto guiFunction = []() {
-        // Our application state
-       
         ImGui::Text("Hello, ");  
         ImGui::Text("UA: %f | UR: %f | UREF: %f | UBAT: %f | PT1000: %f",ua,ur,uref,ubat,pt1000);
 
