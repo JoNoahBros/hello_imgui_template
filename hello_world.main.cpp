@@ -273,49 +273,42 @@ void Demo_RealtimePlots() {
     // }
 }
 
-struct AppState
+
+// Demonstrate how to load additional fonts (fonts - part 1/3)
+HelloImGui::FontDpiResponsive * gCustomFont = nullptr;
+HelloImGui::FontDpiResponsive * gSaboFont = nullptr;
+
+void MyLoadFonts()
 {
-    
-
-	HelloImGui::FontDpiResponsive *TitleFont;
-	HelloImGui::FontDpiResponsive *ColorFont;
-	HelloImGui::FontDpiResponsive *EmojiFont;
-	HelloImGui::FontDpiResponsive *LargeIconFont;
-};
-
-//////////////////////////////////////////////////////////////////////////
-//    Additional fonts handling
-//////////////////////////////////////////////////////////////////////////
-void LoadFonts(AppState& appState) // This is called by runnerParams.callbacks.LoadAdditionalFonts
-{
-	auto runnerParams = HelloImGui::GetRunnerParams();
-	runnerParams->dpiAwareParams.onlyUseFontDpiResponsive=true;
-
-    runnerParams->callbacks.defaultIconFont = HelloImGui::DefaultIconFont::FontAwesome6;
-    // First, load the default font (the default font should be loaded first)
-    HelloImGui::ImGuiDefaultSettings::LoadDefaultFont_WithFontAwesomeIcons();
-    // Then load the other fonts
-    appState.TitleFont = HelloImGui::LoadFontDpiResponsive("fonts/DroidSans.ttf", 18.f);
-
-    HelloImGui::FontLoadingParams fontLoadingParamsEmoji;
-    fontLoadingParamsEmoji.useFullGlyphRange = true;
-    appState.EmojiFont = HelloImGui::LoadFontDpiResponsive("fonts/NotoEmoji-Regular.ttf", 24.f, fontLoadingParamsEmoji);
-
-    HelloImGui::FontLoadingParams fontLoadingParamsLargeIcon;
-    fontLoadingParamsLargeIcon.useFullGlyphRange = true;
-    appState.LargeIconFont = HelloImGui::LoadFontDpiResponsive("fonts/fontawesome-webfont.ttf", 24.f, fontLoadingParamsLargeIcon);
-#ifdef IMGUI_ENABLE_FREETYPE
-    // Found at https://www.colorfonts.wtf/
-    HelloImGui::FontLoadingParams fontLoadingParamsColor;
-    fontLoadingParamsColor.loadColor = true;
-    appState.ColorFont = HelloImGui::LoadFontDpiResponsive("fonts/Playbox/Playbox-FREE.otf", 24.f, fontLoadingParamsColor);
-#endif
+	HelloImGui::GetRunnerParams()->dpiAwareParams.onlyUseFontDpiResponsive = true;
+	HelloImGui::ImGuiDefaultSettings::LoadDefaultFont_WithFontAwesomeIcons(); // The font that is loaded first is the default font
+	gCustomFont = HelloImGui::LoadFontDpiResponsive("fonts/Akronim-Regular.ttf", 40.f); // will be loaded from the assets folder
+    gSaboFont = HelloImGui::LoadFontDpiResponsive("fonts/DroidSans.ttf",20.f);
 }
 
+// Our state
+bool show_demo_window = true;
+bool show_another_window = false;
+
 int main(int , char *[]) {   
-    auto guiFunction = []() {
+    //LoadFonts();
+    HelloImGui::RunnerParams params;
+
+    params.appWindowParams.windowGeometry.size = {1280, 720};
+    params.appWindowParams.windowTitle = "Dear ImGui example with 'Hello ImGui'";
+    params.imGuiWindowParams.defaultImGuiWindowType = HelloImGui::DefaultImGuiWindowType::NoDefaultWindow;
+
+    // Fonts need to be loaded at the appropriate moment during initialization (fonts - part 2/3)
+    params.callbacks.LoadAdditionalFonts = MyLoadFonts; // LoadAdditionalFonts is a callback that we set with our own font loading function
+    // Demo custom font usage (fonts - part 3/3)
+    //auto guiFunction = []() {
+    params.callbacks.ShowGui = [&]() {
         // Our application state
-        LoadFonts();
+        ImGui::PushFont(gCustomFont->font);
+        ImGui::Text("LAMBDA");
+        ImGui::PopFont();
+
+        ImGui::PushFont(gSaboFont->font);
         ImGui::Text("Hello, ");  
         ImGui::Text("UA: %f | UR: %f | UREF: %f | UBAT: %f | PT1000: %f",ua,ur,uref,ubat,pt1000);
 
@@ -331,7 +324,6 @@ int main(int , char *[]) {
             setHeating(false);
             startFetch("api/setHeating?h=", handleSetHeating);
         }
-
         HelloImGui::ImageFromAsset("world.jpg");   // Display a static image
 
         if (ImGui::Button("Logging On")){
@@ -351,30 +343,74 @@ int main(int , char *[]) {
             lastTime = now;
             //request();
             startFetch("api/val", handleAnalogValues);
-
-         
         }
         
-       
         //setLogging(_flag_start_logging);
         ImGui::Text("Values is: %s", responseAPI);
         if (ImGui::Button("Bye!")) {               // Display a button
             // and immediately handle its action if it is clicked!
             HelloImGui::GetRunnerParams()->appShallExit = true;
-      
         }
   
         ImPlot::CreateContext(); 
         //Demo_LinePlots();  
         Demo_RealtimePlots();
         ImPlot::DestroyContext();
-    
- 
+        
+        ImGui::PopFont();
+
+
+        // // 1. Show the big demo window (Most of the sample code is in ImGui::ShowDemoWindow()! You can browse its code to learn more about Dear ImGui!).
+        // if (show_demo_window)
+        //     ImGui::ShowDemoWindow(&show_demo_window);
+
+        // // 2. Show a simple window that we create ourselves. We use a Begin/End pair to created a named window.
+        // {
+        //     static float f = 0.0f;
+        //     static int counter = 0;
+
+        //     ImGui::Begin("Hello, world!");                          // Create a window called "Hello, world!" and append into it.
+
+        //     // Demo custom font usage (fonts - part 3/3)
+        //     ImGui::PushFont(gCustomFont->font);
+        //     ImGui::Text("Custom font");
+        //     ImGui::PopFont();
+
+        //     ImGui::Text("This is some useful text.");               // Display some text (you can use a format strings too)
+        //     ImGui::Checkbox("Demo Window", &show_demo_window);      // Edit bools storing our window open/close state
+        //     ImGui::Checkbox("Another Window", &show_another_window);
+
+        //     ImGui::SliderFloat("float", &f, 0.0f, 1.0f);            // Edit 1 float using a slider from 0.0f to 1.0f
+        //     ImGui::ColorEdit3("clear color", (float*)&params.imGuiWindowParams.backgroundColor); // Edit 3 floats representing a color
+
+        //     if (ImGui::Button("Button"))                            // Buttons return true when clicked (most widgets return true when edited/activated)
+        //         counter++;
+        //     ImGui::SameLine();
+        //     ImGui::Text("counter = %d", counter);
+
+        //     ImGui::Text("Application average %.3f ms/frame (%.1f FPS)", 1000.0f / ImGui::GetIO().Framerate, ImGui::GetIO().Framerate);
+
+        //     #ifndef HELLOIMGUI_MOBILEDEVICE
+        //     if (ImGui::Button("Quit"))
+        //         params.appShallExit = true;
+        //     #endif
+        //     ImGui::End();
+        // }
+
+        // // 3. Show another simple window.
+        // if (show_another_window)
+        // {
+        //     ImGui::Begin("Another Window", &show_another_window);   // Pass a pointer to our bool variable (the window will have a closing button that will clear the bool when clicked)
+        //     ImGui::Text("Hello from another window!");
+        //     if (ImGui::Button("Close Me"))
+        //         show_another_window = false;
+        //     ImGui::End();
+        // }
     
     // printf("sleeping...\n");
     // emscripten_sleep(100);
     };
-    HelloImGui::Run(guiFunction, "Hello, globe", true);
+    HelloImGui::Run(params);//, "Hello, globe", true);
     
     return 0;
 }  
