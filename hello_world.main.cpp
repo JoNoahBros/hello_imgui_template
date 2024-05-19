@@ -268,6 +268,156 @@ void Demo_RealtimePlots() {
 }
 
 
+//////////////////////////////////////////////////////////////////////////
+//    Our Application State
+//////////////////////////////////////////////////////////////////////////
+struct MyAppSettings
+{
+    HelloImGui::InputTextData motto = HelloImGui::InputTextData(
+        "Hello, Dear ImGui\n"
+        "Unleash your creativity!\n",
+        true, // multiline
+        ImVec2(14.f, 3.f) // initial size (in em)
+    );
+    int value = 10;
+};
+
+struct AppState
+{
+    float f = 0.0f;
+    int counter = 0;
+
+    float rocket_launch_time = 0.f;
+    float rocket_progress = 0.0f;
+
+    enum class RocketState {
+        Init,
+        Preparing,
+        Launched
+    };
+    RocketState rocket_state = RocketState::Init;
+
+    MyAppSettings myAppSettings; // This values will be stored in the application settings
+
+	HelloImGui::FontDpiResponsive *TitleFont;
+	HelloImGui::FontDpiResponsive *ColorFont;
+	HelloImGui::FontDpiResponsive *EmojiFont;
+	HelloImGui::FontDpiResponsive *LargeIconFont;
+};
+//////////////////////////////////////////////////////////////////////////
+//    Additional fonts handling
+//////////////////////////////////////////////////////////////////////////
+void LoadFonts(AppState& appState) // This is called by runnerParams.callbacks.LoadAdditionalFonts
+{
+	auto runnerParams = HelloImGui::GetRunnerParams();
+	runnerParams->dpiAwareParams.onlyUseFontDpiResponsive=true;
+
+    runnerParams->callbacks.defaultIconFont = HelloImGui::DefaultIconFont::FontAwesome6;
+    // First, load the default font (the default font should be loaded first)
+    HelloImGui::ImGuiDefaultSettings::LoadDefaultFont_WithFontAwesomeIcons();
+    // Then load the other fonts
+    appState.TitleFont = HelloImGui::LoadFontDpiResponsive("fonts/DroidSans.ttf", 18.f);
+
+    HelloImGui::FontLoadingParams fontLoadingParamsEmoji;
+    fontLoadingParamsEmoji.useFullGlyphRange = true;
+    appState.EmojiFont = HelloImGui::LoadFontDpiResponsive("fonts/NotoEmoji-Regular.ttf", 24.f, fontLoadingParamsEmoji);
+
+    HelloImGui::FontLoadingParams fontLoadingParamsLargeIcon;
+    fontLoadingParamsLargeIcon.useFullGlyphRange = true;
+    appState.LargeIconFont = HelloImGui::LoadFontDpiResponsive("fonts/fontawesome-webfont.ttf", 24.f, fontLoadingParamsLargeIcon);
+#ifdef IMGUI_ENABLE_FREETYPE
+    // Found at https://www.colorfonts.wtf/
+    HelloImGui::FontLoadingParams fontLoadingParamsColor;
+    fontLoadingParamsColor.loadColor = true;
+    appState.ColorFont = HelloImGui::LoadFontDpiResponsive("fonts/Playbox/Playbox-FREE.otf", 24.f, fontLoadingParamsColor);
+#endif
+}
+//////////////////////////////////////////////////////////////////////////
+//    Save additional settings in the ini file
+//////////////////////////////////////////////////////////////////////////
+// This demonstrates how to store additional info in the application settings
+// Use this sparingly!
+// This is provided as a convenience only, and it is not intended to store large quantities of text data.
+
+// Warning, the save/load function below are quite simplistic!
+std::string MyAppSettingsToString(const MyAppSettings& myAppSettings)
+{
+    using namespace nlohmann;
+    json j;
+    j["motto"] = HelloImGui::InputTextDataToString(myAppSettings.motto);
+    j["value"] = myAppSettings.value;
+    return j.dump();
+}
+MyAppSettings StringToMyAppSettings(const std::string& s)
+{
+    if (s.empty())
+        return MyAppSettings();
+    MyAppSettings myAppSettings;
+    using namespace nlohmann;
+    try {
+        json j = json::parse(s);
+        myAppSettings.motto = HelloImGui::InputTextDataFromString(j["motto"].get<std::string>());
+        myAppSettings.value = j["value"];
+    }
+    catch (json::exception& e)
+    {
+        HelloImGui::Log(HelloImGui::LogLevel::Error, "Error while parsing user settings: %s", e.what());
+    }
+    return myAppSettings;
+}
+
+// Note: LoadUserSettings() and SaveUserSettings() will be called in the callbacks `PostInit` and `BeforeExit`:
+//     runnerParams.callbacks.PostInit = [&appState]   { LoadMyAppSettings(appState);};
+//     runnerParams.callbacks.BeforeExit = [&appState] { SaveMyAppSettings(appState);};
+void LoadMyAppSettings(AppState& appState) //
+{
+    appState.myAppSettings = StringToMyAppSettings(HelloImGui::LoadUserPref("MyAppSettings"));
+}
+void SaveMyAppSettings(const AppState& appState)
+{
+    HelloImGui::SaveUserPref("MyAppSettings", MyAppSettingsToString(appState.myAppSettings));
+}
+
+// Note: LoadUserSettings() and SaveUserSettings() will be called in the callbacks `PostInit` and `BeforeExit`:
+//     runnerParams.callbacks.PostInit = [&appState]   { LoadMyAppSettings(appState);};
+
+void DemoRocket(AppState& appState)
+{
+    ImGui::PushFont(appState.TitleFont->font); ImGui::Text("Status Bar Demo"); ImGui::PopFont();
+    ImGui::BeginGroup();
+    if (appState.rocket_state == AppState::RocketState::Init)
+    {
+        if (ImGui::Button(ICON_FA_ROCKET" Launch rocket"))
+        {
+            appState.rocket_launch_time = (float)ImGui::GetTime();
+            appState.rocket_state = AppState::RocketState::Preparing;
+            HelloImGui::Log(HelloImGui::LogLevel::Warning, "Rocket is being prepared");
+        }
+    }
+    else if (appState.rocket_state == AppState::RocketState::Preparing)
+    {
+        ImGui::Text("Please Wait");
+        appState.rocket_progress = (float)(ImGui::GetTime() - appState.rocket_launch_time) / 3.f;
+        if (appState.rocket_progress >= 1.0f)
+        {
+            appState.rocket_state = AppState::RocketState::Launched;
+            HelloImGui::Log(HelloImGui::LogLevel::Warning, "Rocket was launched");
+        }
+    }
+    else if (appState.rocket_state == AppState::RocketState::Launched)
+    {
+        ImGui::Text(ICON_FA_ROCKET " Rocket launched");
+        if (ImGui::Button("Reset Rocket"))
+        {
+            appState.rocket_state = AppState::RocketState::Init;
+            appState.rocket_progress = 0.f;
+        }
+    }
+    ImGui::EndGroup();
+    if (ImGui::IsItemHovered())
+        ImGui::SetTooltip("Look at the status bar after clicking");
+}
+
 int main(int , char *[]) {   
     auto guiFunction = []() {
         ImGui::Text("Hello, ");  
