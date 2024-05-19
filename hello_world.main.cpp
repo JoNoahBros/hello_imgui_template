@@ -220,11 +220,6 @@ void Demo_RealtimePlots() {
     sdata3.AddPoint(t, uref);
     sdata4.AddPoint(t, ubat);
     sdata5.AddPoint(t, pt1000);
-    // rdata1.AddPoint(t, ua);
-    // rdata2.AddPoint(t, ur);
-    // rdata3.AddPoint(t, uref);
-    // rdata4.AddPoint(t, ubat);
-    // rdata5.AddPoint(t, pt1000);
 
     static float history = 10.0f;
     ImGui::SliderFloat("History",&history,1,30,"%.1f s");
@@ -250,17 +245,17 @@ void Demo_RealtimePlots() {
         ImPlot::EndPlot();
     }
 
-    // if (ImPlot::BeginPlot("##Rolling", ImVec2(-1,150))) {
-    //     ImPlot::SetupAxes(NULL, NULL, flags, flags);
-    //     ImPlot::SetupAxisLimits(ImAxis_X1,0,history, ImGuiCond_Always);
-    //     ImPlot::SetupAxisLimits(ImAxis_Y1,0,1);
-    //     ImPlot::PlotLine("UA", &rdata1.Data[0].x, &rdata1.Data[0].y, rdata1.Data.size(), 0, 0, 2 * sizeof(float));
-    //     ImPlot::PlotLine("UR", &rdata2.Data[0].x, &rdata2.Data[0].y, rdata2.Data.size(), 0, 0, 2 * sizeof(float));
-    //     ImPlot::PlotLine("UREF", &rdata3.Data[0].x, &rdata3.Data[0].y, rdata3.Data.size(), 0, 0, 2 * sizeof(float));
-    //     ImPlot::PlotLine("UBAT", &rdata4.Data[0].x, &rdata4.Data[0].y, rdata4.Data.size(), 0, 0, 2 * sizeof(float));
-    //     ImPlot::PlotLine("PT1000", &rdata5.Data[0].x, &rdata5.Data[0].y, rdata5.Data.size(), 0, 0, 2 * sizeof(float));
-    //     ImPlot::EndPlot();
-    // }
+    if (ImPlot::BeginPlot("##Rolling", ImVec2(-1,150))) {
+        ImPlot::SetupAxes(NULL, NULL, flags, flags);
+        ImPlot::SetupAxisLimits(ImAxis_X1,0,history, ImGuiCond_Always);
+        ImPlot::SetupAxisLimits(ImAxis_Y1,0,1);
+        ImPlot::PlotLine("UA", &rdata1.Data[0].x, &rdata1.Data[0].y, rdata1.Data.size(), 0, 0, 2 * sizeof(float));
+        ImPlot::PlotLine("UR", &rdata2.Data[0].x, &rdata2.Data[0].y, rdata2.Data.size(), 0, 0, 2 * sizeof(float));
+        ImPlot::PlotLine("UREF", &rdata3.Data[0].x, &rdata3.Data[0].y, rdata3.Data.size(), 0, 0, 2 * sizeof(float));
+        ImPlot::PlotLine("UBAT", &rdata4.Data[0].x, &rdata4.Data[0].y, rdata4.Data.size(), 0, 0, 2 * sizeof(float));
+        ImPlot::PlotLine("PT1000", &rdata5.Data[0].x, &rdata5.Data[0].y, rdata5.Data.size(), 0, 0, 2 * sizeof(float));
+        ImPlot::EndPlot();
+    }
 
     // if (ImPlot::BeginPlot("##Rolling", ImVec2(-1,150))) {
     //     ImPlot::SetupAxes(NULL, NULL, flags, flags);
@@ -323,16 +318,10 @@ int main(int , char *[]) {
       
         }
   
-        // ImPlot::CreateContext();
-        // //Demo_LinePlots()      
-        // Demo_RealtimePlots();
-        // ImPlot::DestroyContext();
-        //start_timer();
-        // if (check_timer()) {
-        //     request();
-        //     printf("timer happened!\n");
-        //     ImGui::Text("timer happened!\n");  
-
+        ImPlot::CreateContext();   
+        Demo_RealtimePlots();
+        ImPlot::DestroyContext();
+    
  
     
     // printf("sleeping...\n");
