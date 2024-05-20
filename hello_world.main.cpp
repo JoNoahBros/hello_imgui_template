@@ -25,7 +25,8 @@ int  _cmd_start_logging = 0;
 float ua, ur,uref,ubat,pt1000;
 int slideVal = 24 ;
 double lastTime= 0.0;
-double lastTimeX= 0.0;
+int chip_cmd = 0;
+std::string responseText = "Default";
 
 // Define a callback type
 using ResponseHandler = std::function<void(const std::string&)>;
@@ -86,7 +87,9 @@ void handleSetLogging(const std::string& data) {
 void handleSetHeating(const std::string& data) {
     printf("Set heating response: %s\n", data.c_str());
 }
-
+void handleChip(const std::string& data){
+    responseText = data;
+}
 void setLogging(bool value) {
     // Create a context with the appropriate handler
     FetchContext* context = new FetchContext{handleSetLogging};
@@ -135,6 +138,7 @@ void sliderValue(int value){
     const std::string url = "api/setSlider?v=" + std::to_string(value);
     emscripten_fetch(&attr, url.c_str());
 }
+void chip(int cmd){}
 
 void startFetch(const std::string& url, ResponseHandler handler) {
     FetchContext* context = new FetchContext{handler};
@@ -192,28 +196,9 @@ struct RollingBuffer {
         Data.push_back(ImVec2(xmod, y));
     }
 };
-void Demo_LinePlots() {
-    static float xs1[1001], ys1[1001];
-    
-    for (int i = 0; i < 1001; ++i) {
-        xs1[i] = i * 0.001f;
-        ys1[i] = 0.5f + 0.5f * sinf(50 * (xs1[i] + (float)ImGui::GetTime() / 10));
-    }
-    static double xs2[20], ys2[20];
-    for (int i = 0; i < 20; ++i) {
-        xs2[i] = i * 1/19.0f;
-        ys2[i] = xs2[i] * xs2[i];
-    }
-    if (ImPlot::BeginPlot("Line Plots")) {
-        ImPlot::SetupAxes("x","y");
-        ImPlot::PlotLine("f(x)", xs1, ys1, 1001);
-        ImPlot::SetNextMarkerStyle(ImPlotMarker_Circle);
-        ImPlot::PlotLine("g(x)", xs2, ys2, 20,ImPlotLineFlags_Segments);
-        ImPlot::EndPlot();
-    }
-}
 
-void Demo_RealtimePlots() {
+
+void RealtimePlots() {
     ImGui::BulletText("Move your mouse to change the data!");
     ImGui::BulletText("This example assumes 60 FPS. Higher FPS requires larger buffer size.");
     static ScrollingBuffer sdata1, sdata2,sdata3,sdata4,sdata5,sdata6;
@@ -277,7 +262,28 @@ void Demo_RealtimePlots() {
 // Demonstrate how to load additional fonts (fonts - part 1/3)
 HelloImGui::FontDpiResponsive * gCustomFont = nullptr;
 HelloImGui::FontDpiResponsive * gSaboFont = nullptr;
+struct AppState
+{
+    float f = 0.0f;
+    int counter = 0;
 
+    float rocket_launch_time = 0.f;
+    float rocket_progress = 0.0f;
+
+    enum class RocketState {
+        Init,
+        Preparing,
+        Launched
+    };
+    RocketState rocket_state = RocketState::Init;
+
+    //MyAppSettings myAppSettings; // This values will be stored in the application settings
+
+	HelloImGui::FontDpiResponsive *TitleFont;
+	HelloImGui::FontDpiResponsive *ColorFont;
+	HelloImGui::FontDpiResponsive *EmojiFont;
+	HelloImGui::FontDpiResponsive *LargeIconFont;
+};
 void MyLoadFonts()
 {
 	HelloImGui::GetRunnerParams()->dpiAwareParams.onlyUseFontDpiResponsive = true;
@@ -285,21 +291,59 @@ void MyLoadFonts()
 	gCustomFont = HelloImGui::LoadFontDpiResponsive("fonts/Akronim-Regular.ttf", 40.f); // will be loaded from the assets folder
     gSaboFont = HelloImGui::LoadFontDpiResponsive("fonts/DroidSans.ttf",20.f);
 }
+//////////////////////////////////////////////////////////////////////////
+//    Additional fonts handling
+//////////////////////////////////////////////////////////////////////////
+void LoadFonts(AppState& appState) // This is called by runnerParams.callbacks.LoadAdditionalFonts
+{
+	auto runnerParams = HelloImGui::GetRunnerParams();
+	runnerParams->dpiAwareParams.onlyUseFontDpiResponsive=true;
 
+    runnerParams->callbacks.defaultIconFont = HelloImGui::DefaultIconFont::FontAwesome6;
+    // First, load the default font (the default font should be loaded first)
+    HelloImGui::ImGuiDefaultSettings::LoadDefaultFont_WithFontAwesomeIcons();
+    // Then load the other fonts
+    appState.TitleFont = HelloImGui::LoadFontDpiResponsive("fonts/DroidSans.ttf", 18.f);
+
+    HelloImGui::FontLoadingParams fontLoadingParamsEmoji;
+    fontLoadingParamsEmoji.useFullGlyphRange = true;
+    appState.EmojiFont = HelloImGui::LoadFontDpiResponsive("fonts/NotoEmoji-Regular.ttf", 24.f, fontLoadingParamsEmoji);
+
+    HelloImGui::FontLoadingParams fontLoadingParamsLargeIcon;
+    fontLoadingParamsLargeIcon.useFullGlyphRange = true;
+    appState.LargeIconFont = HelloImGui::LoadFontDpiResponsive("fonts/fontawesome-webfont.ttf", 24.f, fontLoadingParamsLargeIcon);
+#ifdef IMGUI_ENABLE_FREETYPE
+    // Found at https://www.colorfonts.wtf/
+    HelloImGui::FontLoadingParams fontLoadingParamsColor;
+    fontLoadingParamsColor.loadColor = true;
+    appState.ColorFont = HelloImGui::LoadFontDpiResponsive("fonts/Playbox/Playbox-FREE.otf", 24.f, fontLoadingParamsColor);
+#endif
+}
 // Our state
 bool show_demo_window = true;
 bool show_another_window = false;
 
 int main(int , char *[]) {   
     //LoadFonts();
+    // Our application state
+    AppState appState;
     HelloImGui::RunnerParams params;
 
     params.appWindowParams.windowGeometry.size = {1280, 720};
     params.appWindowParams.windowTitle = "Dear ImGui example with 'Hello ImGui'";
     params.imGuiWindowParams.defaultImGuiWindowType = HelloImGui::DefaultImGuiWindowType::NoDefaultWindow;
+    params.appWindowParams.restorePreviousGeometry = true;
+
+    // Our application uses a borderless window, but is movable/resizable
+    params.appWindowParams.borderless = true;
+    params.appWindowParams.borderlessMovable = true;
+    params.appWindowParams.borderlessResizable = true;
+    params.appWindowParams.borderlessClosable = true;
 
     // Fonts need to be loaded at the appropriate moment during initialization (fonts - part 2/3)
-    params.callbacks.LoadAdditionalFonts = MyLoadFonts; // LoadAdditionalFonts is a callback that we set with our own font loading function
+    //params.callbacks.LoadAdditionalFonts = MyLoadFonts; // LoadAdditionalFonts is a callback that we set with our own font loading function
+    // Load additional font
+    params.callbacks.LoadAdditionalFonts = [&appState]() { LoadFonts(appState); };
     // Demo custom font usage (fonts - part 3/3)
     //auto guiFunction = []() {
     params.callbacks.ShowGui = [&]() {
@@ -320,6 +364,7 @@ int main(int , char *[]) {
             startFetch("api/setHeating?h=", handleSetHeating);
             
         }
+        ImGui::SameLine();
          if (ImGui::Button("Heating OFF")){
             setHeating(false);
             startFetch("api/setHeating?h=", handleSetHeating);
@@ -332,6 +377,7 @@ int main(int , char *[]) {
             setLogging(true);
 
             }
+        ImGui::SameLine();
         if (ImGui::Button("Logging OFF")){
             _cmd_start_logging = 0;
             startFetch("api/setLogging?l=", handleSetLogging);
@@ -354,7 +400,7 @@ int main(int , char *[]) {
   
         ImPlot::CreateContext(); 
         //Demo_LinePlots();  
-        Demo_RealtimePlots();
+        RealtimePlots();
         ImPlot::DestroyContext();
         
         ImGui::PopFont();

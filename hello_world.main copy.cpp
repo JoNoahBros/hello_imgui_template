@@ -207,7 +207,7 @@ void Demo_LinePlots() {
     }
 }
 
-void Demo_RealtimePlots() {
+void RealtimePlots() {
     ImGui::BulletText("Move your mouse to change the data!");
     ImGui::BulletText("This example assumes 60 FPS. Higher FPS requires larger buffer size.");
     static ScrollingBuffer sdata1, sdata2,sdata3,sdata4,sdata5,sdata6;
@@ -469,7 +469,7 @@ int main(int , char *[]) {
         }
   
         ImPlot::CreateContext();   
-        Demo_RealtimePlots();
+        RealtimePlots();
         ImPlot::DestroyContext();
     
  
