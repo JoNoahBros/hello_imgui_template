@@ -592,10 +592,6 @@ int main(int, char *[])
             startFetch("api/val", handleAnalogValues);
         }
 
-        // if (ImGui::Button("Bye!")) {               // Display a button
-        //     // and immediately handle its action if it is clicked!
-        //     HelloImGui::GetRunnerParams()->appShallExit = true;
-        // }
         ImGui::PopFont();
         ImGui::Separator();
 
