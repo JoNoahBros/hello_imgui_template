@@ -15,7 +15,7 @@
 #include "imgui_internal.h"
 
 static char szTestText[200];
-static char responseAPI[200];
+// static char responseAPI[200];
 bool _flag_start_heating = false;
 bool _flag_start_logging = false;
 int _cmd_start_logging = 0;
@@ -24,173 +24,24 @@ int slideVal = 24;
 double lastTime = 0.0;
 int chip_cmd = 0;
 std::string responseText = "Default";
-
+bool heatingOn = false;
+bool loggingOn = false;
+bool chipReq = false;
 // Define a callback type
 using ResponseHandler = std::function<void(const std::string &)>;
+std::string responseAPI;
+std::vector<int> parsedValues;
+std::string chipResponseAddress;
+std::string chipResponseValues;
+// Demonstrate how to load additional fonts (fonts - part 1/3)
+HelloImGui::FontDpiResponsive *gCustomFont = nullptr;
+HelloImGui::FontDpiResponsive *gSaboFont = nullptr;
 
+// Struct to hold fetch context
 struct FetchContext
 {
-    ResponseHandler handler;
+    void (*callback)(const std::string &);
 };
-void downloadSucceeded(emscripten_fetch_t *fetch)
-{
-    printf("Finished downloading %llu bytes from URL %s.\n", fetch->numBytes, fetch->url);
-
-    // Retrieve the context
-    FetchContext *context = (FetchContext *)fetch->userData;
-
-    // Copy the data to responseAPI
-    memcpy(responseAPI, fetch->data, fetch->numBytes);
-    responseAPI[fetch->numBytes] = '\0';
-    std::string data(responseAPI);
-
-    // Call the appropriate handler
-    if (context && context->handler)
-    {
-        context->handler(data);
-    }
-
-    // Clean up
-    delete context;
-    emscripten_fetch_close(fetch); // Free data associated with the fetch.
-}
-void downloadFailed(emscripten_fetch_t *fetch)
-{
-    printf("Downloading %s failed, HTTP failure status code: %d.\n", fetch->url, fetch->status);
-
-    // Clean up
-    delete (FetchContext *)fetch->userData;
-    emscripten_fetch_close(fetch); // Also free data on failure.
-}
-void handleAnalogValues(const std::string &data)
-{
-    std::stringstream dataStream(data);
-    const auto read = [&dataStream](float &value)
-    {
-        std::string line;
-        getline(dataStream, line, ' ');
-        printf("Read line %s\n", line.c_str());
-        sscanf(line.c_str(), "%f", &value);
-    };
-
-    read(ua);
-    read(ur);
-    read(uref);
-    read(ubat);
-    read(pt1000);
-
-    printf("UA: %f, UR: %f, UREF: %f, UBAT: %f, PT1000: %f\n", ua, ur, uref, ubat, pt1000);
-}
-void handleSetLogging(const std::string &data)
-{
-    printf("Set logging response: %s\n", data.c_str());
-}
-
-void handleSetHeating(const std::string &data)
-{
-    printf("Set heating response: %s\n", data.c_str());
-}
-void handleChip(const std::string &data)
-{
-    printf("Chip response: %s\n", data.c_str());
-}
-
-void setLogging(bool value)
-{
-    // Create a context with the appropriate handler
-    FetchContext *context = new FetchContext{handleSetLogging};
-
-    // Initialize fetch attributes
-    emscripten_fetch_attr_t attr;
-    emscripten_fetch_attr_init(&attr);
-    strcpy(attr.requestMethod, "GET");
-    attr.attributes = EMSCRIPTEN_FETCH_LOAD_TO_MEMORY;
-    attr.onsuccess = downloadSucceeded;
-    attr.onerror = downloadFailed;
-    attr.userData = context;
-
-    // Construct the URL with the logging value
-    const std::string url = "api/setLogging?l=" + std::string(value ? "true" : "false");
-    printf("Requesting URL: %s\n", url.c_str());
-    emscripten_fetch(&attr, url.c_str());
-}
-
-void setHeating(bool value)
-{
-    // Create a context with the appropriate handler
-    FetchContext *context = new FetchContext{handleSetHeating};
-
-    // Initialize fetch attributes
-    emscripten_fetch_attr_t attr;
-    emscripten_fetch_attr_init(&attr);
-    strcpy(attr.requestMethod, "GET");
-    attr.attributes = EMSCRIPTEN_FETCH_LOAD_TO_MEMORY;
-    attr.onsuccess = downloadSucceeded;
-    attr.onerror = downloadFailed;
-    attr.userData = context;
-
-    const std::string url = "api/setHeating?h=" + std::string(value ? "true" : "false");
-    printf("Requesting URL: %s\n", url.c_str());
-    emscripten_fetch(&attr, url.c_str());
-}
-
-void sliderValue(int value)
-{
-    emscripten_fetch_attr_t attr;
-    emscripten_fetch_attr_init(&attr);
-    strcpy(attr.requestMethod, "GET");
-    attr.attributes = EMSCRIPTEN_FETCH_LOAD_TO_MEMORY;
-    // attr.onsuccess = downloadSucceeded;
-    // attr.onerror = downloadFailed;
-
-    const std::string url = "api/setSlider?v=" + std::to_string(value);
-    emscripten_fetch(&attr, url.c_str());
-}
-void ChipSend(bool flag)
-{
-    // Create a context with the appropriate handler
-    FetchContext *context = new FetchContext{handleSetHeating};
-
-   // Initialize fetch attributes
-    emscripten_fetch_attr_t attr;
-    emscripten_fetch_attr_init(&attr);
-    strcpy(attr.requestMethod, "GET");
-    attr.attributes = EMSCRIPTEN_FETCH_LOAD_TO_MEMORY;
-    attr.onsuccess = downloadSucceeded;
-    attr.onerror = downloadFailed;
-    attr.userData = context;
-    const std::string url = "api/cmdChip?f=" + std::string(flag ? "true" : "false");
-    emscripten_fetch(&attr, url.c_str());
-}
-void ChipCommand(int value)
-{
-    emscripten_fetch_attr_t attr;
-    emscripten_fetch_attr_init(&attr);
-    strcpy(attr.requestMethod, "GET");
-    attr.attributes = EMSCRIPTEN_FETCH_LOAD_TO_MEMORY;
-    // attr.onsuccess = downloadSucceeded;
-    // attr.onerror = downloadFailed;
-
-    const std::string url = "api/cmdChipCommand?v=" + std::to_string(value);
-    emscripten_fetch(&attr, url.c_str());
-}
-void startFetch(const std::string &url, ResponseHandler handler)
-{
-    FetchContext *context = new FetchContext{handler};
-
-    emscripten_fetch_attr_t attr;
-    emscripten_fetch_attr_init(&attr);
-    strcpy(attr.requestMethod, "GET");
-
-    attr.attributes = EMSCRIPTEN_FETCH_LOAD_TO_MEMORY;
-    attr.onsuccess = downloadSucceeded;
-    attr.onerror = downloadFailed; // Assuming you have a downloadFailed function
-    attr.userData = context;
-
-    emscripten_fetch(&attr, url.c_str());
-}
-
-// utility structure for realtime plot
 struct ScrollingBuffer
 {
     int MaxSize;
@@ -221,7 +72,6 @@ struct ScrollingBuffer
         }
     }
 };
-// utility structure for realtime plot
 struct RollingBuffer
 {
     float Span;
@@ -239,7 +89,233 @@ struct RollingBuffer
         Data.push_back(ImVec2(xmod, y));
     }
 };
+struct AppState
+{
+    // MyAppSettings myAppSettings; // This values will be stored in the application settings
 
+    HelloImGui::FontDpiResponsive *TitleFont;
+    HelloImGui::FontDpiResponsive *ColorFont;
+    HelloImGui::FontDpiResponsive *EmojiFont;
+    HelloImGui::FontDpiResponsive *LargeIconFont;
+    HelloImGui::FontDpiResponsive *CustomFont1;
+    HelloImGui::FontDpiResponsive *CustomFont2;
+    HelloImGui::FontDpiResponsive *CustomFont3;
+    HelloImGui::FontDpiResponsive *CustomFont4;
+    HelloImGui::FontDpiResponsive *CustomFont5;
+};
+struct ChipBtnOld
+{
+    int IDENT_REG_REQUEST = 0;    //(72, 0)
+    int DIAG_REG_REQUEST = 1;     //(120, 0)
+    int REG1_INIT_REQUEST = 2;    //(108, 0)
+    int REG1_WRITE_REQUEST = 3;   //(86, 0)
+    int REG1_CALIBRATE_MODE = 4;  //(86, 157)
+    int REG1_NORMAL_MODE_V8 = 5;  //(86, 136)
+    int REG1_MODE_NORMAL_V17 = 6; //(86, 137)
+    int REG2_INIT_REQUEST = 7;    //(126, 0)
+    int REG2_WRITE_REQUEST = 8;   //(90, 0)
+};
+struct ChipButton
+{
+    const char *name;
+    int value;
+};
+struct Colors
+{
+    static const ImVec4 Red;
+    static const ImVec4 Green;
+    static const ImVec4 Blue;
+    static const ImVec4 Yellow;
+    static const ImVec4 Cyan;
+    static const ImVec4 Magenta;
+    static const ImVec4 White;
+    static const ImVec4 Black;
+};
+const std::array<ChipButton, 9> chipButtons = {{
+    {"IDENT_REG_REQUEST", 0},    // (72, 0)
+    {"DIAG_REG_REQUEST", 1},     // (120, 0)
+    {"REG1_INIT_REQUEST", 2},    // (108, 0)
+    {"REG1_WRITE_REQUEST", 3},   // (86, 0)
+    {"REG1_CALIBRATE_MODE", 4},  // (86, 157)
+    {"REG1_NORMAL_MODE_V8", 5},  // (86, 136)
+    {"REG1_MODE_NORMAL_V17", 6}, // (86, 137)
+    {"REG2_INIT_REQUEST", 7},    // (126, 0)
+    {"REG2_WRITE_REQUEST", 8}    // (90, 0)
+}};
+std::vector<int> parseIntList(const std::string &data)
+{
+    std::vector<int> integers;
+    std::stringstream ss(data);
+    std::string token;
+    while (std::getline(ss, token, ','))
+    {
+        integers.push_back(std::stoi(token));
+    }
+    return integers;
+}
+void downloadSucceeded(emscripten_fetch_t *fetch)
+{
+    // Retrieve the context
+    FetchContext *context = static_cast<FetchContext *>(fetch->userData);
+
+    // Copy the data to responseAPI
+    responseAPI.assign(fetch->data, fetch->numBytes);
+
+    // Call the appropriate callback with the data
+    if (context && context->callback)
+    {
+        context->callback(responseAPI);
+    }
+
+    // Cleanup fetch resources
+    emscripten_fetch_close(fetch);
+    delete context;
+}
+void downloadFailed(emscripten_fetch_t *fetch)
+{
+    printf("Download failed for URL: %s\n", fetch->url);
+    // Cleanup fetch resources
+    emscripten_fetch_close(fetch);
+}
+void startFetch(const std::string &url, void (*callback)(const std::string &))
+{
+    // Create a context with the appropriate handler
+    FetchContext *context = new FetchContext{callback};
+
+    // Initialize fetch attributes
+    emscripten_fetch_attr_t attr;
+    emscripten_fetch_attr_init(&attr);
+    strcpy(attr.requestMethod, "GET");
+    attr.attributes = EMSCRIPTEN_FETCH_LOAD_TO_MEMORY;
+    attr.onsuccess = downloadSucceeded;
+    attr.onerror = downloadFailed;
+    attr.userData = context;
+
+    printf("Requesting URL: %s\n", url.c_str());
+    emscripten_fetch(&attr, url.c_str());
+}
+void handleSetHeating(const std::string &data)
+{
+    printf("Set heating response: %s\n", data.c_str());
+    responseAPI = data;
+    // You can parse the response here if needed
+}
+void setHeating(bool value)
+{
+    const std::string url = "api/setHeating?h=" + std::string(value ? "true" : "false");
+    startFetch(url, handleSetHeating);
+}
+void handleAnalogValues(const std::string &data)
+{
+    std::stringstream dataStream(data);
+    const auto read = [&dataStream](float &value)
+    {
+        std::string line;
+        getline(dataStream, line, ' ');
+        printf("Read line %s\n", line.c_str());
+        sscanf(line.c_str(), "%f", &value);
+    };
+
+    read(ua);
+    read(ur);
+    read(uref);
+    read(ubat);
+    read(pt1000);
+
+    printf("UA: %f, UR: %f, UREF: %f, UBAT: %f, PT1000: %f\n", ua, ur, uref, ubat, pt1000);
+}
+void handleSetLogging(const std::string &data)
+{
+    responseAPI = data;
+}
+
+//     // Split the response into address and values
+//     size_t pos = data.find(',');
+//     if (pos != std::string::npos) {
+//         chipResponseAddress = data.substr(0, pos);
+//         chipResponseValues = data.substr(pos + 1);
+//     } else {
+//         // Handle error case where response format is invalid
+//         printf("Error: Invalid response format\n");
+//         chipResponseAddress.clear();
+//         chipResponseValues.clear();
+//     }
+// }
+// Usage example:
+void handleChipRequest(const std::string &data)
+{
+   // printf("Chip response: %s\n", data.c_str());
+    responseAPI = data;
+  
+}
+void handleChipID(const std::string &data)
+{
+    printf("Chip ID: %s\n", data.c_str());
+    responseAPI = data;
+}
+void setLogging(bool value)
+{
+    // // Create a context with the appropriate handler
+    // FetchContext *context = new FetchContext{handleSetLogging};
+
+    // // Initialize fetch attributes
+    // emscripten_fetch_attr_t attr;
+    // emscripten_fetch_attr_init(&attr);
+    // strcpy(attr.requestMethod, "GET");
+    // attr.attributes = EMSCRIPTEN_FETCH_LOAD_TO_MEMORY;
+    // attr.onsuccess = downloadSucceeded;
+    // attr.onerror = downloadFailed;
+    // attr.userData = context;
+
+    // Construct the URL with the logging value
+    const std::string url = "api/setLogging?l=" + std::string(value ? "true" : "false");
+    startFetch(url, handleSetLogging);
+    // printf("Requesting URL: %s\n", url.c_str());
+    // emscripten_fetch(&attr, url.c_str());
+}
+void sliderValue(int value)
+{
+    emscripten_fetch_attr_t attr;
+    emscripten_fetch_attr_init(&attr);
+    strcpy(attr.requestMethod, "GET");
+    attr.attributes = EMSCRIPTEN_FETCH_LOAD_TO_MEMORY;
+    // attr.onsuccess = downloadSucceeded;
+    // attr.onerror = downloadFailed;
+
+    const std::string url = "api/setSlider?v=" + std::to_string(value);
+    emscripten_fetch(&attr, url.c_str());
+}
+void ChipSend(bool flag)
+{
+    //     // Create a context with the appropriate handler
+    //     FetchContext *context = new FetchContext{handleChip};
+
+    //    // Initialize fetch attributes
+    //     emscripten_fetch_attr_t attr;
+    //     emscripten_fetch_attr_init(&attr);
+    //     strcpy(attr.requestMethod, "GET");
+    //     attr.attributes = EMSCRIPTEN_FETCH_LOAD_TO_MEMORY;
+    //     attr.onsuccess = downloadSucceeded;
+    //     attr.onerror = downloadFailed;
+    //     attr.userData = context;
+    const std::string url = "api/cmdChip?f=" + std::string(flag ? "true" : "false");
+    startFetch(url, handleChipRequest);
+    // emscripten_fetch(&attr, url.c_str());
+}
+void ChipCommand(int value)
+{
+    // emscripten_fetch_attr_t attr;
+    // emscripten_fetch_attr_init(&attr);
+    // strcpy(attr.requestMethod, "GET");
+    // attr.attributes = EMSCRIPTEN_FETCH_LOAD_TO_MEMORY;
+    // attr.onsuccess = downloadSucceeded;
+    // attr.onerror = downloadFailed;
+
+    const std::string url = "api/cmdChipCommand?v=" + std::to_string(value);
+    startFetch(url, handleChipID);
+
+    // emscripten_fetch(&attr, url.c_str());
+}
 void RealtimePlots()
 {
     // ImGui::BulletText("Move your mouse to change the data!");
@@ -307,63 +383,19 @@ void RealtimePlots()
     //     ImPlot::EndPlot();
     // }
 }
-
-// Demonstrate how to load additional fonts (fonts - part 1/3)
-HelloImGui::FontDpiResponsive *gCustomFont = nullptr;
-HelloImGui::FontDpiResponsive *gSaboFont = nullptr;
-struct AppState
-{
-    // MyAppSettings myAppSettings; // This values will be stored in the application settings
-
-    HelloImGui::FontDpiResponsive *TitleFont;
-    HelloImGui::FontDpiResponsive *ColorFont;
-    HelloImGui::FontDpiResponsive *EmojiFont;
-    HelloImGui::FontDpiResponsive *LargeIconFont;
-    HelloImGui::FontDpiResponsive *CustomFont1;
-    HelloImGui::FontDpiResponsive *CustomFont2;
-    HelloImGui::FontDpiResponsive *CustomFont3;
-    HelloImGui::FontDpiResponsive *CustomFont4;
-    HelloImGui::FontDpiResponsive *CustomFont5;
-};
-struct ChipBtnOld
-{
-    int IDENT_REG_REQUEST = 0;    //(72, 0)
-    int DIAG_REG_REQUEST = 1;     //(120, 0)
-    int REG1_INIT_REQUEST = 2;    //(108, 0)
-    int REG1_WRITE_REQUEST = 3;   //(86, 0)
-    int REG1_CALIBRATE_MODE = 4;  //(86, 157)
-    int REG1_NORMAL_MODE_V8 = 5;  //(86, 136)
-    int REG1_MODE_NORMAL_V17 = 6; //(86, 137)
-    int REG2_INIT_REQUEST = 7;    //(126, 0)
-    int REG2_WRITE_REQUEST = 8;   //(90, 0)
-};
-
-struct ChipButton {
-    const char* name;
-    int value;
-};
-
-const std::array<ChipButton, 9> chipButtons = {{
-    {"IDENT_REG_REQUEST", 0},    // (72, 0)
-    {"DIAG_REG_REQUEST", 1},     // (120, 0)
-    {"REG1_INIT_REQUEST", 2},    // (108, 0)
-    {"REG1_WRITE_REQUEST", 3},   // (86, 0)
-    {"REG1_CALIBRATE_MODE", 4},  // (86, 157)
-    {"REG1_NORMAL_MODE_V8", 5},  // (86, 136)
-    {"REG1_MODE_NORMAL_V17", 6}, // (86, 137)
-    {"REG2_INIT_REQUEST", 7},    // (126, 0)
-    {"REG2_WRITE_REQUEST", 8}    // (90, 0)
-}};
-// Example function to display the combo box
-void ShowChipButtonComboBox(int& currentItem) {
-    if (ImGui::BeginCombo("Chip Buttons", chipButtons[currentItem].name)) {
-        for (int i = 0; i < chipButtons.size(); i++) {
+void ShowChipButtonComboBox(int &currentItem){
+    if (ImGui::BeginCombo("", chipButtons[currentItem].name))
+    {
+        for (int i = 0; i < chipButtons.size(); i++)
+        {
             bool isSelected = (currentItem == i);
-            if (ImGui::Selectable(chipButtons[i].name, isSelected)) {
+            if (ImGui::Selectable(chipButtons[i].name, isSelected))
+            {
                 currentItem = i;
-                chipCommand(currentItem)
+                ChipCommand(currentItem);
             }
-            if (isSelected) {
+            if (isSelected)
+            {
                 ImGui::SetItemDefaultFocus();
             }
         }
@@ -377,9 +409,6 @@ void MyLoadFonts()
     gCustomFont = HelloImGui::LoadFontDpiResponsive("fonts/Akronim-Regular.ttf", 40.f); // will be loaded from the assets folder
     gSaboFont = HelloImGui::LoadFontDpiResponsive("fonts/DroidSans.ttf", 20.f);
 }
-//////////////////////////////////////////////////////////////////////////
-//    Additional fonts handling
-//////////////////////////////////////////////////////////////////////////
 void LoadFonts(AppState &appState) // This is called by runnerParams.callbacks.LoadAdditionalFonts
 {
     auto runnerParams = HelloImGui::GetRunnerParams();
@@ -420,40 +449,42 @@ void LoadFonts(AppState &appState) // This is called by runnerParams.callbacks.L
     fontLoadingParamsCustom5.useFullGlyphRange = true;
     appState.CustomFont5 = HelloImGui::LoadFontDpiResponsive("fonts/AtPinkoRegular-8OO1M.ttf", 15.f, fontLoadingParamsCustom5);
 }
+
+const ImVec4 Colors::Red = ImVec4(1.0f, 0.0f, 0.0f, 1.0f);
+const ImVec4 Colors::Green = ImVec4(0.0f, 1.0f, 0.0f, 1.0f);
+const ImVec4 Colors::Blue = ImVec4(0.0f, 0.0f, 1.0f, 1.0f);
+const ImVec4 Colors::Yellow = ImVec4(1.0f, 1.0f, 0.0f, 1.0f);
+const ImVec4 Colors::Cyan = ImVec4(0.0f, 1.0f, 1.0f, 1.0f);
+const ImVec4 Colors::Magenta = ImVec4(1.0f, 0.0f, 1.0f, 1.0f);
+const ImVec4 Colors::White = ImVec4(1.0f, 1.0f, 1.0f, 1.0f);
+const ImVec4 Colors::Black = ImVec4(0.0f, 0.0f, 0.0f, 1.0f);
+
 // Our state
 bool show_demo_window = true;
 bool show_another_window = false;
 bool _flag_send = false;
 static int selectedValue = 0;
 static int currentChipButtonIndex = 0;
+ImVec4 redColor = ImVec4(1.0f, 0.0f, 0.0f, 1.0f); // Define red color
 int main(int, char *[])
 {
-
+    Colors col_lam;
     AppState appState;
     HelloImGui::RunnerParams runnerParams;
-
     // runnerParams.appWindowParams.windowGeometry.size = {1280, 720};
     runnerParams.appWindowParams.windowTitle = "LAMBDA APP";
     runnerParams.imGuiWindowParams.defaultImGuiWindowType = HelloImGui::DefaultImGuiWindowType::ProvideFullScreenWindow; // NoDefaultWindow;
-
     // params.appWindowParams.restorePreviousGeometry = true;
-
     // Our application uses a borderless window, but is movable/resizable
     runnerParams.appWindowParams.borderless = true;
     runnerParams.appWindowParams.borderlessMovable = true;
     runnerParams.appWindowParams.borderlessResizable = true;
     runnerParams.appWindowParams.borderlessClosable = true;
-
-    // Fonts need to be loaded at the appropriate moment during initialization (fonts - part 2/3)
-    // runnerParams.callbacks.LoadAdditionalFonts = MyLoadFonts; // LoadAdditionalFonts is a callback that we set with our own font loading function
     // Load additional font
     runnerParams.callbacks.LoadAdditionalFonts = [&appState]()
     { LoadFonts(appState); };
-    // Demo custom font usage (fonts - part 3/3)
-    // auto guiFunction = []() {
-    // 1. Change theme
     auto &tweakedTheme = runnerParams.imGuiWindowParams.tweakedTheme;
-    tweakedTheme.Theme = ImGuiTheme::ImGuiTheme_MaterialFlat;
+    tweakedTheme.Theme = ImGuiTheme::ImGuiTheme_GrayVariations_Darker;
     tweakedTheme.Tweaks.Rounding = 10.f;
     // 2. Customize ImGui style at startup
     runnerParams.callbacks.SetupImGuiStyle = []()
@@ -462,113 +493,99 @@ int main(int, char *[])
         ImGui::GetStyle().ItemSpacing = ImVec2(6.f, 4.f);
     };
 
-    
     runnerParams.callbacks.ShowGui = [&]()
     {
-        // Our application state
-        // ImGui::PushFont(gCustomFont->font);
-        // ImGui::Text("LAMBDA");
-        // ImGui::PopFont();
-        // ImGui::PushFont(gSaboFont->font);
-        // ImGui::Text("Hello, ");
-        // ImGui::Text("UA: %f | UR: %f | UREF: %f | UBAT: %f | PT1000: %f",ua,ur,uref,ubat,pt1000);
-
-        HelloImGui::ImageFromAsset("world.jpg"); // Display a static image
+        // HelloImGui::ImageFromAsset("world.jpg"); // Display a static image
         ImGui::PushFont(appState.CustomFont1->font);
-        ImGui::SameLine();
+        ImGui::Indent(20);
         ImGui::Text("LAMBDA");
         ImGui::PopFont();
+        ImGui::SameLine();
+        ImGui::PushFont(appState.CustomFont3->font);
+        ImGui::TextColored(redColor, "RESPONSE: %s", responseAPI.c_str());
+        ImGui::PopFont();
+        ImGui::Separator();
         ImGui::PushFont(appState.CustomFont2->font);
-        ImGui::Text("UA: %f V", ua);
+        ImGui::TextColored(Colors::Red, "UA: %f V", ua);
         ImGui::SameLine();
-        ImGui::Text("UR: %f V", ur);
+        ImGui::TextColored(Colors::Yellow, "UR: %f V", ur);
         ImGui::SameLine();
-        ImGui::Text("UREF: %f V ", uref);
+        ImGui::TextColored(Colors::Green, "UREF: %f V ", uref);
         ImGui::SameLine();
-        ImGui::Text("UBAT: %f V", ubat);
+        ImGui::TextColored(Colors::Blue, "UBAT: %f V", ubat);
         ImGui::SameLine();
-        ImGui::Text("PT1000: %f V", pt1000);
+        ImGui::TextColored(Colors::Magenta, "PT1000: %f V", pt1000);
         ImGui::PopFont();
 
+        if (heatingOn)
+        {
+            // Button is on, render it in red color
+            ImGui::PushStyleColor(ImGuiCol_Button, col_lam.Red);
+            ImGui::PushFont(appState.CustomFont4->font);
+            if (ImGui::Button("Heating On"))
+            {
+                // Toggle the heating state when the button is clicked
+                setHeating(false);
+                heatingOn = false;
+            }
+            ImGui::PopFont();
+            ImGui::PopStyleColor();
+        }
+        else
+        {
+            // Button is off, render it in green color
+            ImGui::PushStyleColor(ImGuiCol_Button, col_lam.Green);
+            ImGui::PushFont(appState.CustomFont4->font);
+            if (ImGui::Button("Heating OFF"))
+            {
+                // Toggle the heating state when the button is clicked
+                setHeating(true);
+                heatingOn = true;
+            }
+            ImGui::PopFont();
+            ImGui::PopStyleColor();
+        }
+        ImGui::SameLine();
+        //###### LOGGING
+        if (loggingOn)
+        {
+            // Button is on, render it in red color
+            ImGui::PushStyleColor(ImGuiCol_Button, col_lam.Green);
+            ImGui::PushFont(appState.CustomFont4->font);
+            if (ImGui::Button("RECORDING"))
+            {
+                // Toggle the heating state when the button is clicked
+                setLogging(false);
+                loggingOn = false;
+            }
+            ImGui::PopFont();
+            ImGui::PopStyleColor();
+        }
+        else
+        {
+            // Button is off, render it in green color
+            ImGui::PushStyleColor(ImGuiCol_Button, col_lam.Yellow);
+            ImGui::PushFont(appState.CustomFont4->font);
+            if (ImGui::Button("NOT RECORDING"))
+            {
+                // Toggle the heating state when the button is clicked
+                setLogging(true);
+                loggingOn = true;
+            }
+            ImGui::PopFont();
+            ImGui::PopStyleColor();
+        }
+
+        //#####################
         ImGui::PushFont(appState.CustomFont4->font);
-       
-        // ImGui::SameLine();
-
-        // if (ImGui::Button("DIAG_REG_REQUEST")){
-        //     Chip(chipButtons.DIAG_REG_REQUEST);
-        // }
-        // ImGui::SameLine();
-
-        // if (ImGui::Button("REG1_INIT_REQUEST")){
-        //     Chip(chipButtons.REG1_INIT_REQUEST);
-        // }
-        // ImGui::SameLine();
-
-        // if (ImGui::Button("REG1_WRITE_REQUEST ID")){
-        //     Chip(chipButtons.REG1_WRITE_REQUEST);
-        // }
-        // ImGui::SameLine();
-
-        // if (ImGui::Button("REG1_CALIBRATE_MODE")){
-        //     Chip(chipButtons.REG1_CALIBRATE_MODE);
-        // }
-        // ImGui::SameLine();
-
-        // if (ImGui::Button("REG1_NORMAL_MODE_V8 ")){
-        //     Chip(chipButtons.REG1_NORMAL_MODE_V8);
-        // }
-        // ImGui::SameLine();
-
-        // if (ImGui::Button("REG1_MODE_NORMAL_V17")){
-        //     Chip(chipButtons.REG1_MODE_NORMAL_V17);
-        // }
-        // ImGui::SameLine();
-
-        // if (ImGui::Button("Read REG2_INIT_REQUEST")){
-        //     Chip(chipButtons.REG2_INIT_REQUEST);
-        // }
-        // ImGui::SameLine();
-
-        // if (ImGui::Button("REG2_WRITE_REQUEST")){
-        //     Chip(chipButtons.IDENT_REG_REQUEST);
-        // }
-        // ImGui::SameLine();
-    
-
         if (ImGui::SliderInt("Value", &slideVal, 0, 100))
         {
             sliderValue(slideVal);
         }
-        if (ImGui::Button("Heating On"))
-        {
-            setHeating(true);
-            startFetch("api/setHeating?h=", handleSetHeating);
-        }
-        ImGui::SameLine();
-        if (ImGui::Button("Heating OFF"))
-        {
-            setHeating(false);
-            startFetch("api/setHeating?h=", handleSetHeating);
-        }
-        ImGui::SameLine();
-
-        if (ImGui::Button("Logging On"))
-        {
-            _cmd_start_logging = 1;
-            startFetch("api/setLogging?l=", handleSetLogging);
-            setLogging(true);
-        }
-        ImGui::SameLine();
-        if (ImGui::Button("Logging OFF"))
-        {
-            _cmd_start_logging = 0;
-            startFetch("api/setLogging?l=", handleSetLogging);
-            setLogging(false);
-        }
         ImGui::PopFont();
         ImGui::PushFont(appState.CustomFont4->font);
         const auto now = ImGui::GetTime();
-        if (now - lastTime >= 1)
+        if (now - lastTime >= 0.5)
         {
             lastTime = now;
             // request();
@@ -580,6 +597,7 @@ int main(int, char *[])
         //     HelloImGui::GetRunnerParams()->appShallExit = true;
         // }
         ImGui::PopFont();
+        ImGui::Separator();
 
         ImGui::PushFont(appState.CustomFont5->font);
         ImPlot::CreateContext();
@@ -587,80 +605,28 @@ int main(int, char *[])
         RealtimePlots();
         ImPlot::DestroyContext();
         ImGui::PopFont();
-        ImGui::PushFont(appState.CustomFont3->font);
-        // setLogging(_flag_start_logging);
-        ImGui::Text("RESPONSE: %s", responseAPI);
-        ImGui::PopFont();
+        ImGui::PushFont(appState.CustomFont2->font);
 
-            // Use the selected chip button value
+        // Use the selected chip button value
         int selectedValue = chipButtons[currentChipButtonIndex].value;
         ShowChipButtonComboBox(currentChipButtonIndex);
 
-
-        ImGui::Text("Selected Value: %d", selectedValue);
+        //ImGui::Text("Selected Value: %d", selectedValue);
         ImGui::SameLine();
-         if (ImGui::Button("SEND COMMAND")){
+        if (ImGui::Button("SEND COMMAND"))
+        {
             ChipSend(true);
-            startFetch("api/cmdChip?f=", handleSetLogging)
-
         }
-        // ChipSend(false);
-        
+    
 
+    std::vector<int>
+        values = parseIntList(chipResponseValues);
+    std::vector<int> address = parseIntList(chipResponseAddress);
 
-        // // 1. Show the big demo window (Most of the sample code is in ImGui::ShowDemoWindow()! You can browse its code to learn more about Dear ImGui!).
-        // if (show_demo_window)
+    
+};
+HelloImGui::Run(runnerParams); //, "Hello, globe", true);
 
-        //     ImGui::ShowDemoWindow(&show_demo_window);
-
-        // // 2. Show a simple window that we create ourselves. We use a Begin/End pair to created a named window.
-        // {
-        //     static float f = 0.0f;
-        //     static int counter = 0;
-
-        //     ImGui::Begin("Hello, world!");                          // Create a window called "Hello, world!" and append into it.
-
-        //     // Demo custom font usage (fonts - part 3/3)
-        //     ImGui::PushFont(gCustomFont->font);
-        //     ImGui::Text("Custom font");
-        //     ImGui::PopFont();
-
-        //     ImGui::Text("This is some useful text.");               // Display some text (you can use a format strings too)
-        //     ImGui::Checkbox("Demo Window", &show_demo_window);      // Edit bools storing our window open/close state
-        //     ImGui::Checkbox("Another Window", &show_another_window);
-
-        //     ImGui::SliderFloat("float", &f, 0.0f, 1.0f);            // Edit 1 float using a slider from 0.0f to 1.0f
-        //     ImGui::ColorEdit3("clear color", (float*)&params.imGuiWindowParams.backgroundColor); // Edit 3 floats representing a color
-
-        //     if (ImGui::Button("Button"))                            // Buttons return true when clicked (most widgets return true when edited/activated)
-        //         counter++;
-        //     ImGui::SameLine();
-        //     ImGui::Text("counter = %d", counter);
-
-        //     ImGui::Text("Application average %.3f ms/frame (%.1f FPS)", 1000.0f / ImGui::GetIO().Framerate, ImGui::GetIO().Framerate);
-
-        //     #ifndef HELLOIMGUI_MOBILEDEVICE
-        //     if (ImGui::Button("Quit"))
-        //         params.appShallExit = true;
-        //     #endif
-        //     ImGui::End();
-        // }
-
-        // // 3. Show another simple window.
-        // if (show_another_window)
-        // {
-        //     ImGui::Begin("Another Window", &show_another_window);   // Pass a pointer to our bool variable (the window will have a closing button that will clear the bool when clicked)
-        //     ImGui::Text("Hello from another window!");
-        //     if (ImGui::Button("Close Me"))
-        //         show_another_window = false;
-        //     ImGui::End();
-        // }
-
-        // printf("sleeping...\n");
-        // emscripten_sleep(100);
-    };
-    HelloImGui::Run(runnerParams); //, "Hello, globe", true);
-
-    return 0;
+return 0;
 }
 // ######################################################################################
