@@ -62,7 +62,6 @@ void downloadFailed(emscripten_fetch_t *fetch)
     delete (FetchContext *)fetch->userData;
     emscripten_fetch_close(fetch); // Also free data on failure.
 }
-
 void handleAnalogValues(const std::string &data)
 {
     std::stringstream dataStream(data);
@@ -82,7 +81,6 @@ void handleAnalogValues(const std::string &data)
 
     printf("UA: %f, UR: %f, UREF: %f, UBAT: %f, PT1000: %f\n", ua, ur, uref, ubat, pt1000);
 }
-
 void handleSetLogging(const std::string &data)
 {
     printf("Set logging response: %s\n", data.c_str());
@@ -363,6 +361,7 @@ void ShowChipButtonComboBox(int& currentItem) {
             bool isSelected = (currentItem == i);
             if (ImGui::Selectable(chipButtons[i].name, isSelected)) {
                 currentItem = i;
+                chipCommand(currentItem)
             }
             if (isSelected) {
                 ImGui::SetItemDefaultFocus();
@@ -430,10 +429,6 @@ static int currentChipButtonIndex = 0;
 int main(int, char *[])
 {
 
-
-    
-    // LoadFonts();
-    //  Our application state
     AppState appState;
     HelloImGui::RunnerParams runnerParams;
 
@@ -605,8 +600,8 @@ int main(int, char *[])
         ImGui::Text("Selected Value: %d", selectedValue);
         ImGui::SameLine();
          if (ImGui::Button("SEND COMMAND")){
-            ChipCommand(selectedValue);
             ChipSend(true);
+            startFetch("api/cmdChip?f=", handleSetLogging)
 
         }
         // ChipSend(false);
