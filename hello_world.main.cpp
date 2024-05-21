@@ -361,7 +361,7 @@ void ShowChipButtonComboBox(int& currentItem) {
             bool isSelected = (currentItem == i);
             if (ImGui::Selectable(chipButtons[i].name, isSelected)) {
                 currentItem = i;
-                chipCommand(currentItem)
+                ChipCommand(currentItem);
             }
             if (isSelected) {
                 ImGui::SetItemDefaultFocus();
@@ -601,7 +601,7 @@ int main(int, char *[])
         ImGui::SameLine();
          if (ImGui::Button("SEND COMMAND")){
             ChipSend(true);
-            startFetch("api/cmdChip?f=", handleSetLogging)
+            startFetch("api/cmdChip?f=", handleChip);
 
         }
         // ChipSend(false);
