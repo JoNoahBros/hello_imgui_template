@@ -571,6 +571,22 @@ int main(int, char *[])
 
         ImGui::Separator();
         ImGui::PushFont(appState.HeaderFont->font);
+
+        // Calculate the width of the widest text element
+        float maxWidth = 0.0f;
+        float groupX = (windowWidth - maxWidth) * 0.3f;
+        maxWidth = ImGui::CalcTextSize("Lambda voltage UA: 123.456 V").x;
+        maxWidth = std::max(maxWidth, ImGui::CalcTextSize("Heating resistor voltage UR: 123.456 V").x);
+        maxWidth = std::max(maxWidth, ImGui::CalcTextSize("Reference voltage UREF: 123.456 V").x);
+        maxWidth = std::max(maxWidth, ImGui::CalcTextSize("Battery voltage UBAT: 123.456 V").x);
+        maxWidth = std::max(maxWidth, ImGui::CalcTextSize("Temperature sensor voltage PT1000: 123.456 V").x);
+
+        // Center the group within the current window
+        //float windowWidth = ImGui::GetWindowSize().x;
+        ImGui::SetCursorPosX(groupX);
+
+        ImGui::BeginGroup(); // Begin the grouping
+
         ImGui::TextColored(Colors::Red, "Lambda voltage UA: %f V", ua);
         ImGui::Spacing();
 
@@ -584,6 +600,9 @@ int main(int, char *[])
         ImGui::Spacing();
 
         ImGui::TextColored(Colors::Magenta, "Temperature sensor voltage PT1000: %f V", pt1000);
+        ImGui::Spacing();
+
+        ImGui::EndGroup(); // End the grouping
         ImGui::PopFont();
         ImGui::Spacing();
 
