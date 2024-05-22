@@ -574,12 +574,12 @@ int main(int, char *[])
 
         // Calculate the width of the widest text element
         float maxWidth = 0.0f;
-        float groupX = (windowWidth - maxWidth) * 0.3f;
+        float groupX = (windowWidth - maxWidth) * 0.01f;
         maxWidth = ImGui::CalcTextSize("Lambda voltage UA: 123.456 V").x;
-        maxWidth = std::max(maxWidth, ImGui::CalcTextSize("Heating resistor voltage UR: 123.456 V").x);
-        maxWidth = std::max(maxWidth, ImGui::CalcTextSize("Reference voltage UREF: 123.456 V").x);
-        maxWidth = std::max(maxWidth, ImGui::CalcTextSize("Battery voltage UBAT: 123.456 V").x);
-        maxWidth = std::max(maxWidth, ImGui::CalcTextSize("Temperature sensor voltage PT1000: 123.456 V").x);
+        maxWidth = std::max(maxWidth, ImGui::CalcTextSize("UR: 123.456 V").x);
+        maxWidth = std::max(maxWidth, ImGui::CalcTextSize("UREF: 123.456 V").x);
+        maxWidth = std::max(maxWidth, ImGui::CalcTextSize("UBAT: 123.456 V").x);
+        maxWidth = std::max(maxWidth, ImGui::CalcTextSize("PT1000: 123.456 V").x);
 
         // Center the group within the current window
         //float windowWidth = ImGui::GetWindowSize().x;
@@ -587,20 +587,25 @@ int main(int, char *[])
 
         ImGui::BeginGroup(); // Begin the grouping
 
-        ImGui::TextColored(Colors::Red, "Lambda voltage UA: %f V", ua);
-        ImGui::Spacing();
+        ImGui::Text("UA:");
+        ImGui::SameLine();
 
-        ImGui::TextColored(Colors::Yellow, "Heating resistor voltage UR: %f V", ur);
-        ImGui::Spacing();
+        ImGui::TextColored(Colors::Red,"%f ", ua);
+        ImGui::SameLine();
 
-        ImGui::TextColored(Colors::Green, "Reference voltage UREF: %f V ", uref);
-        ImGui::Spacing();
+        ImGui::TextColored(Colors::Yellow, " UR: %f V", ur);
+        ImGui::SameLine();
 
-        ImGui::TextColored(Colors::Blue, "Battery voltage UBAT: %f V", ubat);
-        ImGui::Spacing();
 
-        ImGui::TextColored(Colors::Magenta, "Temperature sensor voltage PT1000: %f V", pt1000);
-        ImGui::Spacing();
+        ImGui::TextColored(Colors::Green, "UREF: %f V ", uref);
+        ImGui::SameLine();
+
+
+        ImGui::TextColored(Colors::Blue, "UBAT: %f V", ubat);
+        ImGui::SameLine();
+
+        ImGui::TextColored(Colors::Magenta, "PT1000: %f V", pt1000);
+        ImGui::SameLine();
 
         ImGui::EndGroup(); // End the grouping
         ImGui::PopFont();
