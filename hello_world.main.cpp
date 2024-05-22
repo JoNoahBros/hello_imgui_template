@@ -228,20 +228,6 @@ void handleSetLogging(const std::string &data)
 {
     responseAPI = data;
 }
-
-//     // Split the response into address and values
-//     size_t pos = data.find(',');
-//     if (pos != std::string::npos) {
-//         chipResponseAddress = data.substr(0, pos);
-//         chipResponseValues = data.substr(pos + 1);
-//     } else {
-//         // Handle error case where response format is invalid
-//         printf("Error: Invalid response format\n");
-//         chipResponseAddress.clear();
-//         chipResponseValues.clear();
-//     }
-// }
-// Usage example:
 void handleChipRequest(const std::string &data)
 {
    // printf("Chip response: %s\n", data.c_str());
@@ -255,23 +241,9 @@ void handleChipID(const std::string &data)
 }
 void setLogging(bool value)
 {
-    // // Create a context with the appropriate handler
-    // FetchContext *context = new FetchContext{handleSetLogging};
-
-    // // Initialize fetch attributes
-    // emscripten_fetch_attr_t attr;
-    // emscripten_fetch_attr_init(&attr);
-    // strcpy(attr.requestMethod, "GET");
-    // attr.attributes = EMSCRIPTEN_FETCH_LOAD_TO_MEMORY;
-    // attr.onsuccess = downloadSucceeded;
-    // attr.onerror = downloadFailed;
-    // attr.userData = context;
-
     // Construct the URL with the logging value
     const std::string url = "api/setLogging?l=" + std::string(value ? "true" : "false");
     startFetch(url, handleSetLogging);
-    // printf("Requesting URL: %s\n", url.c_str());
-    // emscripten_fetch(&attr, url.c_str());
 }
 void sliderValue(int value)
 {
@@ -287,34 +259,15 @@ void sliderValue(int value)
 }
 void ChipSend(bool flag)
 {
-    //     // Create a context with the appropriate handler
-    //     FetchContext *context = new FetchContext{handleChip};
-
-    //    // Initialize fetch attributes
-    //     emscripten_fetch_attr_t attr;
-    //     emscripten_fetch_attr_init(&attr);
-    //     strcpy(attr.requestMethod, "GET");
-    //     attr.attributes = EMSCRIPTEN_FETCH_LOAD_TO_MEMORY;
-    //     attr.onsuccess = downloadSucceeded;
-    //     attr.onerror = downloadFailed;
-    //     attr.userData = context;
     const std::string url = "api/cmdChip?f=" + std::string(flag ? "true" : "false");
     startFetch(url, handleChipRequest);
     // emscripten_fetch(&attr, url.c_str());
 }
 void ChipCommand(int value)
 {
-    // emscripten_fetch_attr_t attr;
-    // emscripten_fetch_attr_init(&attr);
-    // strcpy(attr.requestMethod, "GET");
-    // attr.attributes = EMSCRIPTEN_FETCH_LOAD_TO_MEMORY;
-    // attr.onsuccess = downloadSucceeded;
-    // attr.onerror = downloadFailed;
-
     const std::string url = "api/cmdChipCommand?v=" + std::to_string(value);
     startFetch(url, handleChipID);
 
-    // emscripten_fetch(&attr, url.c_str());
 }
 void RealtimePlots()
 {
@@ -615,8 +568,7 @@ int main(int, char *[])
         }
     
 
-    std::vector<int>
-        values = parseIntList(chipResponseValues);
+    std::vector<int>values = parseIntList(chipResponseValues);
     std::vector<int> address = parseIntList(chipResponseAddress);
 
     
