@@ -582,29 +582,33 @@ int main(int, char *[])
         maxWidth = std::max(maxWidth, ImGui::CalcTextSize("PT1000: 123.456 V").x);
 
         // Center the group within the current window
-        //float windowWidth = ImGui::GetWindowSize().x;
+        // float windowWidth = ImGui::GetWindowSize().x;
         ImGui::SetCursorPosX(groupX);
 
         ImGui::BeginGroup(); // Begin the grouping
 
         ImGui::Text("UA:");
         ImGui::SameLine();
+        ImGui::TextColored(Colors::Red, "%f ", ua);
 
-        ImGui::TextColored(Colors::Red,"%f ", ua);
+        ImGui::SameLine();
+        ImGui::Text("UR:");
+        ImGui::SameLine();
+        ImGui::TextColored(Colors::Yellow, "%f", ur);
         ImGui::SameLine();
 
-        ImGui::TextColored(Colors::Yellow, " UR: %f V", ur);
+        ImGui::Text("UREF:");
+        ImGui::SameLine();
+        ImGui::TextColored(Colors::Green, "%f", uref);
         ImGui::SameLine();
 
-
-        ImGui::TextColored(Colors::Green, "UREF: %f V ", uref);
+        ImGui::Text("UBAT:");
         ImGui::SameLine();
-
-
-        ImGui::TextColored(Colors::Blue, "UBAT: %f V", ubat);
+        ImGui::TextColored(Colors::Blue, "%f", ubat);
         ImGui::SameLine();
-
-        ImGui::TextColored(Colors::Magenta, "PT1000: %f V", pt1000);
+        ImGui::Text("PT1000:");
+        ImGui::SameLine();
+        ImGui::TextColored(Colors::Magenta, "%f", pt1000);
         ImGui::SameLine();
 
         ImGui::EndGroup(); // End the grouping
