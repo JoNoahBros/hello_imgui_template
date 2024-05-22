@@ -360,7 +360,7 @@ void RealtimePlots()
 }
 void ShowChipButtonComboBox(int &currentItem)
 {
-    if (ImGui::BeginCombo("", chipButtons[currentItem].name))
+    if (ImGui::BeginCombo("", chipButtons[currentItem].name, 2))
     {
         for (int i = 0; i < chipButtons.size(); i++)
         {
@@ -527,8 +527,10 @@ bool show_another_window = false;
 bool _flag_send = false;
 static int selectedValue = 0;
 static int currentChipButtonIndex = 0;
+
 int main(int, char *[])
 {
+
     Colors col_lam;
     AppState appState;
     HelloImGui::RunnerParams runnerParams;
@@ -557,9 +559,13 @@ int main(int, char *[])
 
     runnerParams.callbacks.ShowGui = [&]()
     {
-        // HelloImGui::ImageFromAsset("world.jpg"); // Display a static image
+        float windowWidth = ImGui::GetWindowSize().x;
+        float headerWidth = 250.0f; // Set the desired width in pixels
+        float sliderWidth = 200.0f; // Set the desired width in pixels
+
         ImGui::PushFont(appState.TitleFont->font);
-        ImGui::Indent(20);
+        ImGui::SetCursorPosX((windowWidth - headerWidth) * 0.5f);
+        ImGui::SetNextItemWidth(headerWidth);
         ImGui::Text("LAMBDA");
         ImGui::PopFont();
 
@@ -571,7 +577,6 @@ int main(int, char *[])
         ImGui::TextColored(Colors::Yellow, "Heating resistor voltage UR: %f V", ur);
         ImGui::Spacing();
 
-        
         ImGui::TextColored(Colors::Green, "Reference voltage UREF: %f V ", uref);
         ImGui::Spacing();
 
@@ -605,8 +610,9 @@ int main(int, char *[])
         {
             // Button is on, render it in red color
             ImGui::PushStyleColor(ImGuiCol_Button, col_lam.Red);
+            ImGui::PushStyleColor(ImGuiCol_Text, col_lam.Black);
             ImGui::PushFont(appState.ButtonFont->font);
-            if (ImGui::Button("Heating On",ImVec2(120,30)))
+            if (ImGui::Button("Heating On", ImVec2(120, 30)))
             {
                 // Toggle the heating state when the button is clicked
                 setHeating(false);
@@ -619,8 +625,9 @@ int main(int, char *[])
         {
             // Button is off, render it in green color
             ImGui::PushStyleColor(ImGuiCol_Button, col_lam.Green);
+            ImGui::PushStyleColor(ImGuiCol_Text, col_lam.Black);
             ImGui::PushFont(appState.ButtonFont->font);
-            if (ImGui::Button("Heating OFF",ImVec2(120,30)))
+            if (ImGui::Button("Heating OFF", ImVec2(120, 30)))
             {
                 // Toggle the heating state when the button is clicked
                 setHeating(true);
@@ -629,9 +636,9 @@ int main(int, char *[])
             ImGui::PopFont();
             ImGui::PopStyleColor();
         }
-        
-        ImGui::SameLine();
 
+        ImGui::SetCursorPosX((windowWidth - sliderWidth) * 0.5f);
+        ImGui::SetNextItemWidth(sliderWidth);
         if (ImGui::SliderInt("", &slideVal, 0, 100))
         {
             sliderValue(slideVal);
@@ -646,6 +653,7 @@ int main(int, char *[])
         {
             // Button is on, render it in red color
             ImGui::PushStyleColor(ImGuiCol_Button, col_lam.Green);
+            ImGui::PushStyleColor(ImGuiCol_Text, col_lam.Black);
             ImGui::PushFont(appState.ButtonFont->font);
             if (ImGui::Button("RECORDING"))
             {
@@ -660,6 +668,7 @@ int main(int, char *[])
         {
             // Button is off, render it in green color
             ImGui::PushStyleColor(ImGuiCol_Button, col_lam.Yellow);
+            ImGui::PushStyleColor(ImGuiCol_Text, col_lam.Black);
             ImGui::PushFont(appState.ButtonFont->font);
             if (ImGui::Button("NOT RECORDING"))
             {
@@ -697,7 +706,6 @@ int main(int, char *[])
         ImGui::PopFont();
 
         ImGui::Separator();
-
     };
     HelloImGui::Run(runnerParams); //, "Hello, globe", true);
 
