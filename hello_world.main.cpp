@@ -13,6 +13,8 @@
 #include "imgui.h"
 #include "imgui_stdlib.h"
 #include "imgui_internal.h"
+#include "regex"
+#include <string>
 
 static char szTestText[200];
 // static char responseAPI[200];
@@ -33,9 +35,31 @@ std::string responseAPI;
 std::vector<int> parsedValues;
 std::string chipResponseAddress;
 std::string chipResponseValues;
+int chipRespAddressInt;
+int chipRespValuesInt;
 // Demonstrate how to load additional fonts (fonts - part 1/3)
 HelloImGui::FontDpiResponsive *gCustomFont = nullptr;
 HelloImGui::FontDpiResponsive *gSaboFont = nullptr;
+
+
+const auto regEx = std::regex(R"(\[(\d*),(\d*)\])");
+
+std::optional<std::pair<int,int>> RegExFun(const std::string &input){
+
+    std::smatch m;
+    if (std::regex_search(input, m, regEx)) {
+        if (m.size() == 2){
+
+            return std::make_pair(
+                std::stoi(m[1].str()),
+                std::stoi(m[1].str())
+            );
+         
+        }
+    }
+    return std::nullopt;
+}
+
 
 // Struct to hold fetch context
 struct FetchContext
@@ -237,7 +261,11 @@ void handleChipRequest(const std::string &data)
 void handleChipID(const std::string &data)
 {
     printf("Chip ID: %s\n", data.c_str());
-    responseAPI = data;
+    if (const auto responseChip = RegExFun(data)){
+        chipRespAddressInt = responseChip->first;
+        chipResponseAddress = std::to_string(chipRespAddressInt);
+    }
+    responseAPI =chipResponseAddress;
 }
 void setLogging(bool value)
 {
@@ -456,6 +484,9 @@ int main(int, char *[])
         ImGui::SameLine();
         ImGui::PushFont(appState.CustomFont3->font);
         ImGui::TextColored(redColor, "RESPONSE: %s", responseAPI.c_str());
+        ImGui::PopFont();
+        ImGui::PushFont(appState.CustomFont3->font);
+        ImGui::TextColored(redColor, "ADDRESS: %s", chipResponseAddress.c_str());
         ImGui::PopFont();
         ImGui::Separator();
         ImGui::PushFont(appState.CustomFont2->font);
