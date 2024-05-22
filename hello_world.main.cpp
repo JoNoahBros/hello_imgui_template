@@ -38,8 +38,6 @@ std::string chipResponseValues;
 int chipRespAddressInt;
 int chipRespValuesInt;
 
-
-
 const auto regEx = std::regex(R"(\[(\d*),(\d*)\])");
 
 std::optional<std::pair<int, int>> RegExFun(const std::string &input)
@@ -121,10 +119,10 @@ struct AppState
     HelloImGui::FontDpiResponsive *ColorFont;
     HelloImGui::FontDpiResponsive *EmojiFont;
     HelloImGui::FontDpiResponsive *LargeIconFont;
-    HelloImGui::FontDpiResponsive *CustomFont1;
-    HelloImGui::FontDpiResponsive *CustomFont2;
-    HelloImGui::FontDpiResponsive *CustomFont3;
-    HelloImGui::FontDpiResponsive *CustomFont4;
+    HelloImGui::FontDpiResponsive *ButtonFont;
+    HelloImGui::FontDpiResponsive *HeaderFont;
+    HelloImGui::FontDpiResponsive *StatusFont;
+    HelloImGui::FontDpiResponsive *PlotFont;
     HelloImGui::FontDpiResponsive *CustomFont5;
     HelloImGui::FontDpiResponsive *SFDBlack;
     HelloImGui::FontDpiResponsive *SFDBold;
@@ -268,6 +266,11 @@ void handleChipID(const std::string &data)
     printf("Chip ID: %s\n", data.c_str());
     responseAPI = data;
 }
+void handleSlider(const std::string &data)
+{
+    printf("Setpoint: %s\n", data.c_str());
+    responseAPI = data;
+}
 void setLogging(bool value)
 {
     // Construct the URL with the logging value
@@ -276,15 +279,8 @@ void setLogging(bool value)
 }
 void sliderValue(int value)
 {
-    emscripten_fetch_attr_t attr;
-    emscripten_fetch_attr_init(&attr);
-    strcpy(attr.requestMethod, "GET");
-    attr.attributes = EMSCRIPTEN_FETCH_LOAD_TO_MEMORY;
-    // attr.onsuccess = downloadSucceeded;
-    // attr.onerror = downloadFailed;
-
     const std::string url = "api/setSlider?v=" + std::to_string(value);
-    emscripten_fetch(&attr, url.c_str());
+    startFetch(url, handleSlider);
 }
 void ChipSend(bool flag)
 {
@@ -299,8 +295,6 @@ void ChipCommand(int value)
 }
 void RealtimePlots()
 {
-    // ImGui::BulletText("Move your mouse to change the data!");
-    // ImGui::BulletText("This example assumes 60 FPS. Higher FPS requires larger buffer size.");
     static ScrollingBuffer sdata1, sdata2, sdata3, sdata4, sdata5, sdata6;
     static RollingBuffer rdata1, rdata2, rdata3, rdata4, rdata5, rdata6;
     // ImVec2 mouse = ImGui::GetMousePos();
@@ -318,7 +312,7 @@ void RealtimePlots()
     rdata5.AddPoint(t, pt1000);
 
     static float history = 10.0f;
-    ImGui::SliderFloat("History", &history, 1, 60, "%.1f s");
+    ImGui::SliderFloat("History", &history, 1, 30, "%.1f s");
     rdata1.Span = history;
     rdata2.Span = history;
     rdata3.Span = history;
@@ -384,8 +378,6 @@ void ShowChipButtonComboBox(int &currentItem)
         ImGui::EndCombo();
     }
 }
-
-
 void LoadFonts(AppState &appState) // This is called by runnerParams.callbacks.LoadAdditionalFonts
 {
     auto runnerParams = HelloImGui::GetRunnerParams();
@@ -395,131 +387,128 @@ void LoadFonts(AppState &appState) // This is called by runnerParams.callbacks.L
     // First, load the default font (the default font should be loaded first)
     HelloImGui::ImGuiDefaultSettings::LoadDefaultFont_WithFontAwesomeIcons();
     // Then load the other fonts
-    appState.TitleFont = HelloImGui::LoadFontDpiResponsive("fonts/Akronim-Regular.ttf", 18.f);
+    appState.TitleFont = HelloImGui::LoadFontDpiResponsive("fonts/SanFrancisco/SanFranciscoDisplay-Heavy.otf", 40.f);
 
-    HelloImGui::FontLoadingParams fontLoadingParamsEmoji;
-    fontLoadingParamsEmoji.useFullGlyphRange = true;
-    appState.EmojiFont = HelloImGui::LoadFontDpiResponsive("fonts/NotoEmoji-Regular.ttf", 24.f, fontLoadingParamsEmoji);
+    // MY FONTS
+    HelloImGui::FontLoadingParams fontLoadingTitleFont;
+    fontLoadingTitleFont.useFullGlyphRange = true;
+    appState.TitleFont = HelloImGui::LoadFontDpiResponsive("fonts/SanFrancisco/SanFranciscoDisplay-Black.otf", 40.f, fontLoadingTitleFont); // will be loaded from the assets folder
 
-    HelloImGui::FontLoadingParams fontLoadingParamsLargeIcon;
-    fontLoadingParamsLargeIcon.useFullGlyphRange = true;
-    appState.LargeIconFont = HelloImGui::LoadFontDpiResponsive("fonts/fontawesome-webfont.ttf", 24.f, fontLoadingParamsLargeIcon);
-#ifdef IMGUI_ENABLE_FREETYPE
-    // Found at https://www.colorfonts.wtf/
-    HelloImGui::FontLoadingParams fontLoadingParamsColor;
-    fontLoadingParamsColor.loadColor = true;
-    appState.ColorFont = HelloImGui::LoadFontDpiResponsive("fonts/Playbox/Playbox-FREE.otf", 24.f, fontLoadingParamsColor);
-#endif
-    HelloImGui::FontLoadingParams fontLoadingParamsCustom1;
-    fontLoadingParamsCustom1.useFullGlyphRange = true;
-    appState.CustomFont1 = HelloImGui::LoadFontDpiResponsive("fonts/Akronim-Regular.ttf", 40.f, fontLoadingParamsCustom1); // will be loaded from the assets folder
-    HelloImGui::FontLoadingParams fontLoadingParamsCustom2;
-    fontLoadingParamsCustom2.useFullGlyphRange = true;
-    appState.CustomFont2 = HelloImGui::LoadFontDpiResponsive("fonts/SanFrancisco/SanFranciscoDisplay-Heavy.otf", 20.f, fontLoadingParamsCustom2);
-    HelloImGui::FontLoadingParams fontLoadingParamsCustom3;
-    fontLoadingParamsCustom3.useFullGlyphRange = true;
-    appState.CustomFont3 = HelloImGui::LoadFontDpiResponsive("fonts/SanFrancisco/SanFranciscoDisplay-Black.otf", 25.f, fontLoadingParamsCustom3);
-    HelloImGui::FontLoadingParams fontLoadingParamsCustom4;
-    fontLoadingParamsCustom4.useFullGlyphRange = true;
-    appState.CustomFont4 = HelloImGui::LoadFontDpiResponsive("fonts/AtPinkoRegular-8OO1M.ttf", 18.f, fontLoadingParamsCustom4);
-    HelloImGui::FontLoadingParams fontLoadingParamsCustom5;
-    fontLoadingParamsCustom5.useFullGlyphRange = true;
-    appState.CustomFont5 = HelloImGui::LoadFontDpiResponsive("fonts/AtPinkoRegular-8OO1M.ttf", 15.f, fontLoadingParamsCustom5);
+    HelloImGui::FontLoadingParams fontLoadingColorFont;
+    fontLoadingColorFont.useFullGlyphRange = true;
+    appState.ColorFont = HelloImGui::LoadFontDpiResponsive("fonts/SanFrancisco/SanFranciscoDisplay-Bold.otf", 20.f, fontLoadingColorFont); // will be loaded from the assets folder
+
+    HelloImGui::FontLoadingParams fontLoadingEmojiFont;
+    fontLoadingEmojiFont.useFullGlyphRange = true;
+    appState.EmojiFont = HelloImGui::LoadFontDpiResponsive("fonts/SanFrancisco/SanFranciscoDisplay-Heavy.otf", 20.f, fontLoadingEmojiFont); // will be loaded from the assets folder
+
+    HelloImGui::FontLoadingParams fontLoadingLargeIconFont;
+    fontLoadingLargeIconFont.useFullGlyphRange = true;
+    appState.LargeIconFont = HelloImGui::LoadFontDpiResponsive("fonts/SanFrancisco/SanFranciscoDisplay-Light.otf", 20.f, fontLoadingLargeIconFont); // will be loaded from the assets folder
+
+    HelloImGui::FontLoadingParams fontLoadingButtonFont;
+    fontLoadingButtonFont.useFullGlyphRange = true;
+    appState.ButtonFont = HelloImGui::LoadFontDpiResponsive("fonts/SanFrancisco/SanFranciscoDisplay-Black.otf", 20.f, fontLoadingButtonFont); // will be loaded from the assets folder
+
+    HelloImGui::FontLoadingParams fontLoadingHeaderFont;
+    fontLoadingHeaderFont.useFullGlyphRange = true;
+    appState.HeaderFont = HelloImGui::LoadFontDpiResponsive("fonts/SanFrancisco/SanFranciscoDisplay-Black.otf", 25.f, fontLoadingHeaderFont); // will be loaded from the assets folder
+
+    HelloImGui::FontLoadingParams fontLoadingStatusFont;
+    fontLoadingStatusFont.useFullGlyphRange = true;
+    appState.StatusFont = HelloImGui::LoadFontDpiResponsive("fonts/SanFrancisco/SanFranciscoDisplay-Regular.otf", 20.f, fontLoadingStatusFont); // will be loaded from the assets folder
+
+    HelloImGui::FontLoadingParams fontLoadingPlotFont;
+    fontLoadingPlotFont.useFullGlyphRange = true;
+    appState.PlotFont = HelloImGui::LoadFontDpiResponsive("fonts/SanFrancisco/SanFranciscoText-MediumItalic.otf", 15.f, fontLoadingPlotFont); // will be loaded from the assets folder
 
     // SAN FRANCISCO FONTS
     // DISPLAY FONTS
-   
     HelloImGui::FontLoadingParams fontLoadingSFDBlack;
     fontLoadingSFDBlack.useFullGlyphRange = true;
     appState.SFDBlack = HelloImGui::LoadFontDpiResponsive("fonts/SanFrancisco/SanFranciscoDisplay-Black.otf", 40.f, fontLoadingSFDBlack); // will be loaded from the assets folder
-    
+
     HelloImGui::FontLoadingParams fontLoadingSFDBold;
     fontLoadingSFDBold.useFullGlyphRange = true;
-    appState.SFDBold = HelloImGui::LoadFontDpiResponsive("fonts/SanFrancisco/SanFranciscoDisplay-Bold.otf", 40.f, fontLoadingSFDBold); // will be loaded from the assets folder
-    
+    appState.SFDBold = HelloImGui::LoadFontDpiResponsive("fonts/SanFrancisco/SanFranciscoDisplay-Bold.otf", 20.f, fontLoadingSFDBold); // will be loaded from the assets folder
+
     HelloImGui::FontLoadingParams fontLoadingSFDHeavy;
     fontLoadingSFDHeavy.useFullGlyphRange = true;
-    appState.SFDHeavy = HelloImGui::LoadFontDpiResponsive("fonts/SanFrancisco/SanFranciscoDisplay-Heavy.otf", 40.f, fontLoadingSFDHeavy); // will be loaded from the assets folder
-
+    appState.SFDHeavy = HelloImGui::LoadFontDpiResponsive("fonts/SanFrancisco/SanFranciscoDisplay-Heavy.otf", 30.f, fontLoadingSFDHeavy); // will be loaded from the assets folder
 
     HelloImGui::FontLoadingParams fontLoadingSFDLight;
     fontLoadingSFDLight.useFullGlyphRange = true;
-    appState.SFDLight = HelloImGui::LoadFontDpiResponsive("fonts/SanFrancisco/SanFranciscoDisplay-Light.otf", 40.f, fontLoadingSFDLight); // will be loaded from the assets folder
-
+    appState.SFDLight = HelloImGui::LoadFontDpiResponsive("fonts/SanFrancisco/SanFranciscoDisplay-Light.otf", 30.f, fontLoadingSFDLight); // will be loaded from the assets folder
 
     HelloImGui::FontLoadingParams fontLoadingSFDMedium;
     fontLoadingSFDMedium.useFullGlyphRange = true;
-    appState.SFDMedium = HelloImGui::LoadFontDpiResponsive("fonts/SanFrancisco/SanFranciscoDisplay-Medium.otf", 40.f, fontLoadingSFDMedium); // will be loaded from the assets folder
-
+    appState.SFDMedium = HelloImGui::LoadFontDpiResponsive("fonts/SanFrancisco/SanFranciscoDisplay-Medium.otf", 30.f, fontLoadingSFDMedium); // will be loaded from the assets folder
 
     HelloImGui::FontLoadingParams fontLoadingSFDRegular;
     fontLoadingSFDRegular.useFullGlyphRange = true;
-    appState.SFDRegular = HelloImGui::LoadFontDpiResponsive("fonts/SanFrancisco/SanFranciscoDisplay-Regular.otf", 40.f, fontLoadingSFDRegular); // will be loaded from the assets folder
-
+    appState.SFDRegular = HelloImGui::LoadFontDpiResponsive("fonts/SanFrancisco/SanFranciscoDisplay-Regular.otf", 30.f, fontLoadingSFDRegular); // will be loaded from the assets folder
 
     HelloImGui::FontLoadingParams fontLoadingSFDSemibold;
     fontLoadingSFDSemibold.useFullGlyphRange = true;
-    appState.SFDSemibold = HelloImGui::LoadFontDpiResponsive("fonts/SanFrancisco/SanFranciscoDisplay-Semibold.otf", 40.f, fontLoadingSFDSemibold); // will be loaded from the assets folder
-
+    appState.SFDSemibold = HelloImGui::LoadFontDpiResponsive("fonts/SanFrancisco/SanFranciscoDisplay-Semibold.otf", 30.f, fontLoadingSFDSemibold); // will be loaded from the assets folder
 
     HelloImGui::FontLoadingParams fontLoadingSFDThin;
     fontLoadingSFDThin.useFullGlyphRange = true;
-    appState.SFDThin = HelloImGui::LoadFontDpiResponsive("fonts/SanFrancisco/SanFranciscoDisplay-Thin.otf", 40.f, fontLoadingSFDThin); // will be loaded from the assets folder
+    appState.SFDThin = HelloImGui::LoadFontDpiResponsive("fonts/SanFrancisco/SanFranciscoDisplay-Thin.otf", 30.f, fontLoadingSFDThin); // will be loaded from the assets folder
 
     HelloImGui::FontLoadingParams fontLoadingSFDUltralight;
     fontLoadingSFDUltralight.useFullGlyphRange = true;
-    appState.SFDUltralight = HelloImGui::LoadFontDpiResponsive("fonts/SanFrancisco/SanFranciscoDisplay-Ultralight.otf", 40.f, fontLoadingSFDUltralight); // will be loaded from the assets folder
-    
+    appState.SFDUltralight = HelloImGui::LoadFontDpiResponsive("fonts/SanFrancisco/SanFranciscoDisplay-Ultralight.otf", 30.f, fontLoadingSFDUltralight); // will be loaded from the assets folder
+
     // TEXT Fonts
 
     HelloImGui::FontLoadingParams fontLoadingSFTBold;
     fontLoadingSFTBold.useFullGlyphRange = true;
-    appState.SFTBold = HelloImGui::LoadFontDpiResponsive("fonts/SanFrancisco/SanFranciscoText-Bold.otf", 40.f, fontLoadingSFTBold); // will be loaded from the assets folder
-    
+    appState.SFTBold = HelloImGui::LoadFontDpiResponsive("fonts/SanFrancisco/SanFranciscoText-Bold.otf", 30.f, fontLoadingSFTBold); // will be loaded from the assets folder
+
     HelloImGui::FontLoadingParams fontLoadingSFTBoldItalic;
     fontLoadingSFTBoldItalic.useFullGlyphRange = true;
-    appState.SFTBoldItalic = HelloImGui::LoadFontDpiResponsive("fonts/SanFrancisco/SanFranciscoText-BoldItalic.otf", 40.f, fontLoadingSFTBoldItalic); // will be loaded from the assets folder
+    appState.SFTBoldItalic = HelloImGui::LoadFontDpiResponsive("fonts/SanFrancisco/SanFranciscoText-BoldItalic.otf", 30.f, fontLoadingSFTBoldItalic); // will be loaded from the assets folder
 
     HelloImGui::FontLoadingParams fontLoadingSFTHeavy;
     fontLoadingSFTHeavy.useFullGlyphRange = true;
-    appState.SFTHeavy = HelloImGui::LoadFontDpiResponsive("fonts/SanFrancisco/SanFranciscoText-Heavy.otf", 40.f, fontLoadingSFTHeavy); // will be loaded from the assets folder
+    appState.SFTHeavy = HelloImGui::LoadFontDpiResponsive("fonts/SanFrancisco/SanFranciscoText-Heavy.otf", 30.f, fontLoadingSFTHeavy); // will be loaded from the assets folder
 
     HelloImGui::FontLoadingParams fontLoadingSFTHeavyItalic;
     fontLoadingSFTHeavyItalic.useFullGlyphRange = true;
-    appState.SFTHeavyItalic = HelloImGui::LoadFontDpiResponsive("fonts/SanFrancisco/SanFranciscoText-HeavyItalic.otf", 40.f, fontLoadingSFTHeavyItalic); // will be loaded from the assets folder
+    appState.SFTHeavyItalic = HelloImGui::LoadFontDpiResponsive("fonts/SanFrancisco/SanFranciscoText-HeavyItalic.otf", 30.f, fontLoadingSFTHeavyItalic); // will be loaded from the assets folder
 
     HelloImGui::FontLoadingParams fontLoadingSFTLight;
     fontLoadingSFTLight.useFullGlyphRange = true;
-    appState.SFTLight = HelloImGui::LoadFontDpiResponsive("fonts/SanFrancisco/SanFranciscoText-Light.otf", 40.f, fontLoadingSFTLight); // will be loaded from the assets folder
+    appState.SFTLight = HelloImGui::LoadFontDpiResponsive("fonts/SanFrancisco/SanFranciscoText-Light.otf", 15.f, fontLoadingSFTLight); // will be loaded from the assets folder
 
     HelloImGui::FontLoadingParams fontLoadingSFTLightItalic;
     fontLoadingSFTLightItalic.useFullGlyphRange = true;
-    appState.SFTLightItalic = HelloImGui::LoadFontDpiResponsive("fonts/SanFrancisco/SanFranciscoText-LightItalic.otf", 40.f, fontLoadingSFTLightItalic); // will be loaded from the assets folder
+    appState.SFTLightItalic = HelloImGui::LoadFontDpiResponsive("fonts/SanFrancisco/SanFranciscoText-LightItalic.otf", 30.f, fontLoadingSFTLightItalic); // will be loaded from the assets folder
 
     HelloImGui::FontLoadingParams fontLoadingSFTMedium;
     fontLoadingSFTMedium.useFullGlyphRange = true;
-    appState.SFTMedium = HelloImGui::LoadFontDpiResponsive("fonts/SanFrancisco/SanFranciscoText-Medium.otf", 40.f, fontLoadingSFTMedium); // will be loaded from the assets folder
+    appState.SFTMedium = HelloImGui::LoadFontDpiResponsive("fonts/SanFrancisco/SanFranciscoText-Medium.otf", 20.f, fontLoadingSFTMedium); // will be loaded from the assets folder
 
     HelloImGui::FontLoadingParams fontLoadingSFTMediumItalic;
     fontLoadingSFTMediumItalic.useFullGlyphRange = true;
-    appState.SFTMediumItalic = HelloImGui::LoadFontDpiResponsive("fonts/SanFrancisco/SanFranciscoText-MediumItalic.otf", 40.f, fontLoadingSFTMediumItalic); // will be loaded from the assets folder
+    appState.SFTMediumItalic = HelloImGui::LoadFontDpiResponsive("fonts/SanFrancisco/SanFranciscoText-MediumItalic.otf", 20.f, fontLoadingSFTMediumItalic); // will be loaded from the assets folder
 
     HelloImGui::FontLoadingParams fontLoadingSFTRegular;
     fontLoadingSFTRegular.useFullGlyphRange = true;
-    appState.SFTRegular = HelloImGui::LoadFontDpiResponsive("fonts/SanFrancisco/SanFranciscoText-Regular.otf", 40.f, fontLoadingSFTRegular); // will be loaded from the assets folder
+    appState.SFTRegular = HelloImGui::LoadFontDpiResponsive("fonts/SanFrancisco/SanFranciscoText-Regular.otf", 20.f, fontLoadingSFTRegular); // will be loaded from the assets folder
 
     HelloImGui::FontLoadingParams fontLoadingSFTRegularItalic;
     fontLoadingSFTRegularItalic.useFullGlyphRange = true;
-    appState.SFTRegularItalic = HelloImGui::LoadFontDpiResponsive("fonts/SanFrancisco/SanFranciscoText-RegularItalic.otf", 40.f, fontLoadingSFTRegularItalic); // will be loaded from the assets folder
+    appState.SFTRegularItalic = HelloImGui::LoadFontDpiResponsive("fonts/SanFrancisco/SanFranciscoText-RegularItalic.otf", 20.f, fontLoadingSFTRegularItalic); // will be loaded from the assets folder
 
     HelloImGui::FontLoadingParams fontLoadingSFTRSemibold;
     fontLoadingSFTRSemibold.useFullGlyphRange = true;
-    appState.SFTRSemibold = HelloImGui::LoadFontDpiResponsive("fonts/SanFrancisco/SanFranciscoText-Semibold.otf", 40.f, fontLoadingSFTRSemibold); // will be loaded from the assets folder
+    appState.SFTRSemibold = HelloImGui::LoadFontDpiResponsive("fonts/SanFrancisco/SanFranciscoText-Semibold.otf", 20.f, fontLoadingSFTRSemibold); // will be loaded from the assets folder
 
     HelloImGui::FontLoadingParams fontLoadingSFTSemiboldItalic;
     fontLoadingSFTSemiboldItalic.useFullGlyphRange = true;
-    appState.SFTSemiboldItalic = HelloImGui::LoadFontDpiResponsive("fonts/SanFrancisco/SanFranciscoText-SemiboldItalic.otf", 40.f, fontLoadingSFTSemiboldItalic); // will be loaded from the assets folder
-
+    appState.SFTSemiboldItalic = HelloImGui::LoadFontDpiResponsive("fonts/SanFrancisco/SanFranciscoText-SemiboldItalic.otf", 20.f, fontLoadingSFTSemiboldItalic); // will be loaded from the assets folder
 }
 
 const ImVec4 Colors::Red = ImVec4(1.0f, 0.0f, 0.0f, 1.0f);
@@ -530,6 +519,7 @@ const ImVec4 Colors::Cyan = ImVec4(0.0f, 1.0f, 1.0f, 1.0f);
 const ImVec4 Colors::Magenta = ImVec4(1.0f, 0.0f, 1.0f, 1.0f);
 const ImVec4 Colors::White = ImVec4(1.0f, 1.0f, 1.0f, 1.0f);
 const ImVec4 Colors::Black = ImVec4(0.0f, 0.0f, 0.0f, 1.0f);
+// ImVec4 redColor = ImVec4(1.0f, 0.0f, 0.0f, 1.0f); // Define red color
 
 // Our state
 bool show_demo_window = true;
@@ -537,7 +527,6 @@ bool show_another_window = false;
 bool _flag_send = false;
 static int selectedValue = 0;
 static int currentChipButtonIndex = 0;
-ImVec4 redColor = ImVec4(1.0f, 0.0f, 0.0f, 1.0f); // Define red color
 int main(int, char *[])
 {
     Colors col_lam;
@@ -557,7 +546,7 @@ int main(int, char *[])
     runnerParams.callbacks.LoadAdditionalFonts = [&appState]()
     { LoadFonts(appState); };
     auto &tweakedTheme = runnerParams.imGuiWindowParams.tweakedTheme;
-    tweakedTheme.Theme = ImGuiTheme::ImGuiTheme_GrayVariations_Darker;
+    tweakedTheme.Theme = ImGuiTheme::ImGuiTheme_Cherry;
     tweakedTheme.Tweaks.Rounding = 10.f;
     // 2. Customize ImGui style at startup
     runnerParams.callbacks.SetupImGuiStyle = []()
@@ -569,42 +558,55 @@ int main(int, char *[])
     runnerParams.callbacks.ShowGui = [&]()
     {
         // HelloImGui::ImageFromAsset("world.jpg"); // Display a static image
-        ImGui::PushFont(appState.CustomFont1->font);
+        ImGui::PushFont(appState.TitleFont->font);
         ImGui::Indent(20);
         ImGui::Text("LAMBDA");
         ImGui::PopFont();
-        ImGui::SameLine();
-        ImGui::PushFont(appState.CustomFont3->font);
-        ImGui::TextColored(redColor, "RESPONSE: %s", responseAPI.c_str());
-        ImGui::PopFont();
-        ImGui::PushFont(appState.CustomFont3->font);
-        ImGui::TextColored(col_lam.Black, "ADDRESS: %s", chipResponseAddress.c_str());
-        ImGui::PopFont();
-        ImGui::SameLine();
-        ImGui::PushFont(appState.CustomFont3->font);
-        ImGui::TextColored(col_lam.Black, "RESPONSE: %s", chipResponseValues.c_str());
-        ImGui::PopFont();
+
         ImGui::Separator();
-        ImGui::PushFont(appState.CustomFont2->font);
-        ImGui::TextColored(Colors::Red, "UA: %f V", ua);
-        ImGui::SameLine();
-        ImGui::TextColored(Colors::Yellow, "UR: %f V", ur);
-        ImGui::SameLine();
-        ImGui::TextColored(Colors::Green, "UREF: %f V ", uref);
-        ImGui::SameLine();
-        ImGui::TextColored(Colors::Blue, "UBAT: %f V", ubat);
-        ImGui::SameLine();
-        ImGui::TextColored(Colors::Magenta, "PT1000: %f V", pt1000);
-        ImGui::PopFont();
+        ImGui::PushFont(appState.HeaderFont->font);
+        ImGui::TextColored(Colors::Red, "Lambda voltage UA: %f V", ua);
+        ImGui::Spacing();
+
+        ImGui::TextColored(Colors::Yellow, "Heating resistor voltage UR: %f V", ur);
+        ImGui::Spacing();
 
         
+        ImGui::TextColored(Colors::Green, "Reference voltage UREF: %f V ", uref);
+        ImGui::Spacing();
+
+        ImGui::TextColored(Colors::Blue, "Battery voltage UBAT: %f V", ubat);
+        ImGui::Spacing();
+
+        ImGui::TextColored(Colors::Magenta, "Temperature sensor voltage PT1000: %f V", pt1000);
+        ImGui::PopFont();
+        ImGui::Spacing();
+
+        ImGui::PushFont(appState.StatusFont->font);
+        // Use the selected chip button value
+        int selectedValue = chipButtons[currentChipButtonIndex].value;
+        ShowChipButtonComboBox(currentChipButtonIndex);
+
+        // ImGui::Text("Selected Value: %d", selectedValue);
+        ImGui::SameLine();
+        if (ImGui::Button("SEND COMMAND"))
+        {
+            ChipSend(true);
+        }
+
+        ImGui::SameLine();
+
+        ImGui::TextColored(col_lam.Red, "ADDRESS %s | RESPONSE %s", chipResponseAddress.c_str(), chipResponseValues.c_str());
+        ImGui::PopFont();
+        ImGui::Separator();
+        ImGui::Spacing();
 
         if (heatingOn)
         {
             // Button is on, render it in red color
             ImGui::PushStyleColor(ImGuiCol_Button, col_lam.Red);
-            ImGui::PushFont(appState.CustomFont4->font);
-            if (ImGui::Button("Heating On"))
+            ImGui::PushFont(appState.ButtonFont->font);
+            if (ImGui::Button("Heating On",ImVec2(120,30)))
             {
                 // Toggle the heating state when the button is clicked
                 setHeating(false);
@@ -617,8 +619,8 @@ int main(int, char *[])
         {
             // Button is off, render it in green color
             ImGui::PushStyleColor(ImGuiCol_Button, col_lam.Green);
-            ImGui::PushFont(appState.CustomFont4->font);
-            if (ImGui::Button("Heating OFF"))
+            ImGui::PushFont(appState.ButtonFont->font);
+            if (ImGui::Button("Heating OFF",ImVec2(120,30)))
             {
                 // Toggle the heating state when the button is clicked
                 setHeating(true);
@@ -627,20 +629,24 @@ int main(int, char *[])
             ImGui::PopFont();
             ImGui::PopStyleColor();
         }
-        ImGui::SameLine();
-        ImGui::Text("HEATING SETPOINT");
+        
         ImGui::SameLine();
 
         if (ImGui::SliderInt("", &slideVal, 0, 100))
         {
             sliderValue(slideVal);
         }
+        ImGui::SameLine();
+        ImGui::Text("HEATING SETPOINT");
         // ###### LOGGING
+        ImGui::Separator();
+        ImGui::Spacing();
+
         if (loggingOn)
         {
             // Button is on, render it in red color
             ImGui::PushStyleColor(ImGuiCol_Button, col_lam.Green);
-            ImGui::PushFont(appState.CustomFont4->font);
+            ImGui::PushFont(appState.ButtonFont->font);
             if (ImGui::Button("RECORDING"))
             {
                 // Toggle the heating state when the button is clicked
@@ -654,7 +660,7 @@ int main(int, char *[])
         {
             // Button is off, render it in green color
             ImGui::PushStyleColor(ImGuiCol_Button, col_lam.Yellow);
-            ImGui::PushFont(appState.CustomFont4->font);
+            ImGui::PushFont(appState.ButtonFont->font);
             if (ImGui::Button("NOT RECORDING"))
             {
                 // Toggle the heating state when the button is clicked
@@ -672,7 +678,7 @@ int main(int, char *[])
         //     sliderValue(slideVal);
         // }
         // ImGui::PopFont();
-        ImGui::PushFont(appState.CustomFont4->font);
+
         const auto now = ImGui::GetTime();
         if (now - lastTime >= 0.5)
         {
@@ -681,27 +687,19 @@ int main(int, char *[])
             startFetch("api/val", handleAnalogValues);
         }
 
-        ImGui::PopFont();
         ImGui::Separator();
 
-        ImGui::PushFont(appState.CustomFont5->font);
+        ImGui::PushFont(appState.PlotFont->font);
         ImPlot::CreateContext();
         // Demo_LinePlots();
         RealtimePlots();
         ImPlot::DestroyContext();
         ImGui::PopFont();
-        ImGui::PushFont(appState.CustomFont2->font);
 
-        // Use the selected chip button value
-        int selectedValue = chipButtons[currentChipButtonIndex].value;
-        ShowChipButtonComboBox(currentChipButtonIndex);
+        ImGui::Separator();
 
-        // ImGui::Text("Selected Value: %d", selectedValue);
-        ImGui::SameLine();
-        if (ImGui::Button("SEND COMMAND"))
-        {
-            ChipSend(true);
-        }
+        ImGui::PushFont(appState.SFDBold->font);
+        ImGui::TextColored(col_lam.Blue, "RESPONSE: %s", responseAPI.c_str());
         ImGui::PopFont();
 
         ImGui::PushFont(appState.SFDBlack->font);
@@ -711,7 +709,7 @@ int main(int, char *[])
         ImGui::PushFont(appState.SFDBold->font);
         ImGui::Text("Testing TEXT with different Fonts");
         ImGui::PopFont();
- 
+
         ImGui::PushFont(appState.SFDHeavy->font);
         ImGui::Text("Testing TEXT with different Fonts");
         ImGui::PopFont();
@@ -767,8 +765,6 @@ int main(int, char *[])
         ImGui::PushFont(appState.SFTMedium->font);
         ImGui::Text("Testing TEXT with different Fonts");
         ImGui::PopFont();
- 
-        
     };
     HelloImGui::Run(runnerParams); //, "Hello, globe", true);
 
