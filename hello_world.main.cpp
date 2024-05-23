@@ -59,6 +59,8 @@ std::optional<std::pair<int, int>> RegExFun(const std::string &input)
     return std::nullopt;
 }
 
+
+
 // Struct to hold fetch context
 struct FetchContext
 {
@@ -173,6 +175,16 @@ const std::array<ChipButton, 9> chipButtons = {{
     {"REG2_INIT_REQUEST", 7},    // (126, 0)
     {"REG2_WRITE_REQUEST", 8}    // (90, 0)
 }};
+struct Column {
+    std::string name;
+    std::string label;
+    bool required;
+    bool sortable;
+    std::string align;
+    std::string type;
+};
+std::vector<std::map<std::string, std::string>> fetchedRows;
+std::vector<Column> fetchedColumns;
 void downloadSucceeded(emscripten_fetch_t *fetch)
 {
     // Retrieve the context
@@ -270,6 +282,27 @@ void handleSlider(const std::string &data)
 {
     printf("Setpoint: %s\n", data.c_str());
     responseAPI = data;
+}
+void handleTableData(const std::string &data)
+{
+    auto json_data = nlohmann::json::parse(data);
+    fetchedRows = json_data["rows"].get<std::vector<std::map<std::string, std::string>>>();
+
+    fetchedColumns.clear();
+    for (const auto &col : json_data["columns"]) {
+        fetchedColumns.push_back(Column{
+            col["name"].get<std::string>(),
+            col["label"].get<std::string>(),
+            col["required"].get<bool>(),
+            col["sortable"].get<bool>(),
+            col["align"].get<std::string>(),
+            col.value("type", "")
+        });
+    }
+}
+void getTableData(bool value){
+    const std::string url = "api/getTableData?t=" + std::string(value ? "true" : "false");
+    startFetch(url, handleTableData);
 }
 void setLogging(bool value)
 {
@@ -528,6 +561,30 @@ bool _flag_send = false;
 static int selectedValue = 0;
 static int currentChipButtonIndex = 0;
 
+void DisplayTable() {
+    if (ImGui::BeginTable("LambdaTable", fetchedColumns.size(), ImGuiTableFlags_Sortable | ImGuiTableFlags_Resizable | ImGuiTableFlags_RowBg | ImGuiTableFlags_Borders)) {
+
+        for (const auto &col : fetchedColumns) {
+            ImGui::TableSetupColumn(col.label.c_str(), ImGuiTableColumnFlags_None);
+        }
+        ImGui::TableHeadersRow();
+
+        for (const auto &row : fetchedRows) {
+            ImGui::TableNextRow();
+            int columnIndex = 0;
+            for (const auto &col : fetchedColumns) {
+                ImGui::TableSetColumnIndex(columnIndex++);
+                ImGui::Text("%s", row.at(col.name).c_str());
+            }
+        }
+
+        ImGui::EndTable();
+    }
+}
+
+
+
+
 int main(int, char *[])
 {
 
@@ -734,6 +791,22 @@ int main(int, char *[])
         ImGui::PopFont();
 
         ImGui::Separator();
+
+
+        // Button is on, render it in red color
+        ImGui::PushStyleColor(ImGuiCol_Button, col_lam.Green);
+        ImGui::PushStyleColor(ImGuiCol_Text, col_lam.Black);
+        ImGui::PushFont(appState.ButtonFont->font);
+        if (ImGui::Button("UPDATE TABLE"))
+        {
+            // Toggle the heating state when the button is clicked
+            getTableData(true);
+        
+        }
+        ImGui::PopFont();
+        ImGui::PopStyleColor();
+
+
     };
     HelloImGui::Run(runnerParams); //, "Hello, globe", true);
 
