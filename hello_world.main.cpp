@@ -631,7 +631,7 @@ int main(int, char *[])
 
         // Calculate the width of the widest text element
         float maxWidth = 0.0f;
-        float groupX = (windowWidth - maxWidth) * 0.01f;
+        float groupX = (windowWidth - maxWidth) * 0.3f;
         maxWidth = ImGui::CalcTextSize("Lambda voltage UA: 123.456 V").x;
         maxWidth = std::max(maxWidth, ImGui::CalcTextSize("UR: 123.456 V").x);
         maxWidth = std::max(maxWidth, ImGui::CalcTextSize("UREF: 123.456 V").x);
@@ -765,13 +765,6 @@ int main(int, char *[])
             ImGui::PopStyleColor();
         }
 
-        // #####################
-        // ImGui::PushFont(appState.CustomFont4->font);
-        // if (ImGui::SliderInt("Value", &slideVal, 0, 100))
-        // {
-        //     sliderValue(slideVal);
-        // }
-        // ImGui::PopFont();
 
         const auto now = ImGui::GetTime();
         if (now - lastTime >= 0.5)
@@ -790,6 +783,9 @@ int main(int, char *[])
         ImPlot::DestroyContext();
         ImGui::PopFont();
 
+        ImGui::Separator();
+        ImGui::Text("SERVER: %s", responseAPI.c_str());
+    
         ImGui::Separator();
 
 
