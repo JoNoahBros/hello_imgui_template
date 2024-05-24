@@ -85,16 +85,26 @@ endif()
 # ==============
 # List of source files
 set(SOURCE_FILES
-    hello_world.main.cpp
+    main.cpp
     source_implot/implot.cpp
     source_implot/implot_items.cpp
 )
-hello_imgui_add_app(hello_world_ ${SOURCE_FILES})
+# hello_imgui_add_app(hello_world_ ${SOURCE_FILES})
+# # Link the hello_imgui library
+# target_link_libraries(hello_world_ PRIVATE hello_imgui)
+
+# # Link options (if needed)
+# target_link_options(hello_world_ PRIVATE -sFETCH -sASYNCIFY)
+
+# # Define the macro for the specific target
+# target_compile_definitions(hello_world_ PRIVATE IMGUI_DEFINE_MATH_OPERATORS)
+
+hello_imgui_add_app(lambda ${SOURCE_FILES})
 # Link the hello_imgui library
-target_link_libraries(hello_world_ PRIVATE hello_imgui)
+target_link_libraries(lambda PRIVATE hello_imgui)
 
 # Link options (if needed)
-target_link_options(hello_world_ PRIVATE -sFETCH -sASYNCIFY)
+target_link_options(lambda PRIVATE -sFETCH -sASYNCIFY)
 
 # Define the macro for the specific target
-target_compile_definitions(hello_world_ PRIVATE IMGUI_DEFINE_MATH_OPERATORS)
+# target_compile_definitions(lambda PRIVATE IMGUI_DEFINE_MATH_OPERATORS)
